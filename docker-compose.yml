@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend # Le dice dónde está la carpeta del proyecto y el Dockerfile
+    image: nexuscode-backend:v1 # Le asigna el nombre y versión a la imagen construida
+    container_name: nexuscode-backend
+    ports:
+      - "4000:4000" # Conecta el puerto de tu PC con el del contenedor
+    env_file:
+      - ./backend/.env # Carga automáticamente las variables de entorno
+    volumes:
+      - ./backend:/app # Crea el espejo entre tu carpeta local y la del contenedor
+      - /app/node_modules # Excepción: Le dice que NO sobreescriba los node_modules del contenedor
+    # Si en algún momento queremos escalar o cambiar el comando, lo podemos forzar desde aquí:
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+    image: nexuscode-frontend:v1
+    container_name: nexuscode-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules

@@ -1,0 +1,16 @@
+# Dependencias de Node
+node_modules/
+
+# Variables de entorno (¡NUNCA SE SUBEN A GITHUB!)
+.env
+
+# Archivos de construcción del Frontend
+frontend/dist/
+frontend/dist-ssr/
+
+# Archivos del Sistema Operativo y Logs
+.DS_Store
+npm-debug.log*
+
+# Documentación interna (No subir a GitHub)
+GUIA_BASE.md
