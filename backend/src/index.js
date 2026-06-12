@@ -14,7 +14,7 @@ connectDB();
 
 // Configuración del servidor
 const app = express();
-const port = process.env.PORT || 4001;
+const port = process.env.PORT || 4000;
 
 // Middlewares principales
 app.use(
