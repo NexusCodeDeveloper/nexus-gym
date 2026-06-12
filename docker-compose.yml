@@ -14,7 +14,7 @@ services:
       - ./backend:/app # Crea el espejo entre tu carpeta local y la del contenedor
       - /app/node_modules # Excepción: Le dice que NO sobreescriba los node_modules del contenedor
     # Si en algún momento queremos escalar o cambiar el comando, lo podemos forzar desde aquí:
-    command: npm run dev
+    command: npm run dev -- -L
 
   frontend:
     build:
