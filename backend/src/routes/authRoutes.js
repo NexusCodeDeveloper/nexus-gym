@@ -4,17 +4,19 @@ import {
   profile,
   registerUser,
   logout,
+  verifyDni,
 } from "../controllers/authController.js";
 import { validateToken } from "../middlewares/validateToken.js";
 
 const router = express.Router();
 
-//Ruta publica para registrar un usuario
+// Rutas públicas
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/verify-dni", verifyDni);
 router.post("/logout", logout);
-router.get("/profile", validateToken, profile); // Ruta protegida para el perfil de usuario, se le va a agregar el middleware de validación de token en index.js
+
+// Ruta protegida
+router.get("/profile", validateToken, profile);
 
 export default router;
-
-// exportar esta ruta al servidor (index.js)
