@@ -4,15 +4,14 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true, // Es obligatorio
-      trim: true, // Corta los espacios en blanco al inicio y al final
+      required: true,
+      trim: true,
     },
     email: {
       type: String,
       required: true,
-      unique: true, // No pueden haber dos usuarios con el mismo email
+      unique: true, // Evita que dos personas se registren con el mismo email
       trim: true,
-      lowercase: true, // Siempre lo guarda en minúsculas por seguridad
     },
     password: {
       type: String,
@@ -20,14 +19,18 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"], // Solo permite estos dos valores
-      default: "user", // Por defecto será un usuario normal
+      default: "user", // Puedes cambiarlo a 'admin' o el rol por defecto que necesites
+    },
+    dni: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
   },
   {
-    timestamps: true, // Crea automáticamente los campos 'createdAt' y 'updatedAt'
-  },
+    timestamps: true, // Crea automáticamente los campos createdAt y updatedAt
+  }
 );
 
-const User = mongoose.model("User", userSchema); // Crea el modelo de usuario a partir del esquema
-export default User; // Exporta el modelo para usarlo en otras partes de la aplicación
+export default mongoose.model("User", userSchema);
