@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data);
         setIsAuthenticated(true);
       } catch (error) {
+        console.error("⨷ ERROR AL RECARGAR SESIÓN:", error.response?.data || error.message);
         setUser(null);
         setIsAuthenticated(false);
       } finally {
