@@ -14,7 +14,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { signin } = useAuth();
 
-  // 3. Funciones de validación y manejo de inputs (ESTA ES LA QUE TE FALTABA)
+  // 3. Funciones de validación y manejo de inputs
   const isValidDniFormat = (value) => {
     const dniRegex = /^\d{7,8}$/;
     return dniRegex.test(value);
@@ -41,14 +41,20 @@ const Login = () => {
       const response = await verifyDni(dni);
       
       if (response.success) {
-
+        // Guardamos los datos en el contexto
         signin(response.user); 
-
         localStorage.setItem('nexus_token', response.token);
-        navigate('/'); 
+        
+        // --- LA MAGIA DE LA REDIRECCIÓN INTELIGENTE ---
+        // Verificamos de forma segura (?.) el rol del usuario
+        if (response.user?.role === 'super_adm') {
+          navigate('/staff'); // Vos vas directo a tu panel
+        } else {
+          navigate('/'); // Los alumnos y profesores van al Home
+        }
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Ocurrió un error al intentar ingresar.');
     } finally {
       setIsLoading(false);
     }
