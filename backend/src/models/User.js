@@ -7,29 +7,20 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    email: {
-      type: String,
-      required: true,
-      unique: true, // Evita que dos personas se registren con el mismo email
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      default: "user", // Puedes cambiarlo a 'admin' o el rol por defecto que necesites
-    },
     dni: {
       type: String,
       required: true,
       unique: true,
       trim: true,
     },
+    role: {
+      type: String,
+      enum: ['super_adm', 'profesor', 'alumno'], // Solo acepta estos 3 valores exactos
+      default: 'alumno', // por defecto es alumno
+    },
   },
   {
-    timestamps: true, // Crea automáticamente los campos createdAt y updatedAt
+    timestamps: true, 
   }
 );
 
