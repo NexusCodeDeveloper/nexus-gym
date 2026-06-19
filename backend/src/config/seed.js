@@ -10,17 +10,22 @@ export const seedTestUser = async () => {
 
     const testUsers = [
       {
-        name: "Tomas Admin",
-        dni: "43565079", 
-        role: "super_adm",
+        name: "Cuenta super admin",
+        dni: "10000000", 
+        role: "superAdmin",
       },
       {
-        name: "Pablo Empleado",
+        name: "Cuenta Admin",
+        dni: "00000000", 
+        role: "admin",
+      },
+      {
+        name: "Cuenta Empleado",
         dni: "11111111", 
         role: "profesor",
       },
       {
-        name: "Milanesa Alumno",
+        name: "Cuenta alumno",
         dni: "22222222", 
         role: "alumno",
       }
@@ -28,7 +33,6 @@ export const seedTestUser = async () => {
 
     console.log("[SEED] Iniciando inyección de usuarios de prueba...");
 
-    // Recorremos el array y comprobamos uno por uno
     for (const userData of testUsers) {
       let userExists = await User.findOne({ dni: userData.dni });
 
@@ -42,7 +46,7 @@ export const seedTestUser = async () => {
           await userExists.save();
           console.log(`[SEED] 🔄 Actualizado rol de: ${userData.name} a ${userData.role}`);
         } else {
-          console.log(`[SEED] ⚡ Ya listo: ${userData.name} (${userData.role})`);
+          console.log(`[SEED] User hardcodeado OK: ${userData.name} (${userData.role})`);
         }
       }
     }
