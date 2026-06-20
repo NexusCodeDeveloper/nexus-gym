@@ -15,10 +15,26 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['super_adm', 'profesor', 'alumno'], // Solo acepta estos 3 valores exactos
-      default: 'alumno', // por defecto es alumno
+      enum: ['superAdmin', 'admin', 'profesor', 'alumno'], 
+      default: 'alumno', 
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    licenseStartDate: {
+      type: Date,
+    },
+    licenseEndDate: {
+      type: Date,
+    },
+    createdBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User', // Referencia al ID del gimnasio (admin) que lo creó
+  default: null
+}
   },
+  
   {
     timestamps: true, 
   }
