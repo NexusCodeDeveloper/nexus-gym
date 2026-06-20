@@ -1,10 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage.jsx";
-import Login from './pages/login/Login.jsx';
+import Login from "./pages/login/Login.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
-import StaffManagement from './pages/admin/StaffManangement.jsx';
+import StaffManagement from "./pages/admin/StaffManangement.jsx";
+import SuperAdminPanel from "./pages/superAdmin/SuperAdminPanel.jsx";
+import LicenseGuard from "./components/license/LicenseGuard.jsx";
+import TeacherPanel from "./pages/TeacherPanel/TeacherPanel.jsx";
+import RoutineList from './pages/routineList/RoutineList.jsx';
 
 function App() {
   return (
@@ -12,15 +16,26 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-        
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/rutinas" element={<RoutineList />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
-          <Route element={<ProtectedRoute allowedRoles={['profesor']} />}>
+          <Route element={<ProtectedRoute allowedRoles={["profesor"]} />}>
+          <Route path="/rutinas" element={<TeacherPanel />} />
           </Route>
-          <Route element={<ProtectedRoute allowedRoles={['super_adm']} />}>
-            <Route path="/staff" element={<StaffManagement />} />
+          <Route element={<ProtectedRoute allowedRoles={["superAdmin"]} />}>
+            <Route path="/nexusControl" element={<SuperAdminPanel />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route
+              path="/admin-dashboard"
+              element={
+                <LicenseGuard>
+                  <StaffManagement />
+                </LicenseGuard>
+              }
+            />
           </Route>
 
         </Routes>
