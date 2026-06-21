@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 const TeacherPanel = () => {
-  const navigate = useNavigate(); // Hook para el botón de volver
+  const navigate = useNavigate();
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+  
+  // 1. Estado para guardar la lista de alumnos traídos del backend
+  const [alumnos, setAlumnos] = useState([]);
+  
   const [routine, setRoutine] = useState({
     title: '',
     level: 'Principiante',
-    // Agregamos un ejercicio en blanco por defecto con el nuevo campo videoUrl
+    studentId: '', // 2. Agregamos el campo studentId vacío por defecto
     days: [{ dayName: 'Lunes', exercises: [{ name: '', sets: '', reps: '', videoUrl: '' }] }]
   });
+
+  // 3. Traemos a los alumnos apenas carga la pantalla
+  useEffect(() => {
+    const fetchAlumnos = async () => {
+      try {
+        const response = await axios.get("http://localhost:4000/api/auth/alumnos", {
+          withCredentials: true // Clave para que valide el token
+        });
+        setAlumnos(response.data);
+      } catch (error) {
+        console.error("Error al cargar los alumnos", error);
+      }
+    };
+    fetchAlumnos();
+  }, []);
 
   const addDay = () => {
     if (routine.days.length >= 7) return;
@@ -27,7 +47,6 @@ const TeacherPanel = () => {
 
   const addExercise = () => {
     const newDays = [...routine.days];
-    // Incorporamos el campo de videoUrl al crear uno nuevo
     newDays[activeDayIndex].exercises.push({ name: '', sets: '', reps: '', videoUrl: '' });
     setRoutine({ ...routine, days: newDays });
   };
@@ -46,21 +65,22 @@ const TeacherPanel = () => {
 
   const handleSaveRoutine = async () => {
     if (!routine.title) return alert("Por favor, ponle un título a la rutina");
+    // 4. Validación para que no te olvides de asignarla
+    if (!routine.studentId) return alert("Por favor, selecciona a qué alumno le vas a asignar la rutina");
 
     try {
       const response = await fetch("http://localhost:4000/api/routines/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-         
         },
         body: JSON.stringify(routine),
         credentials: "include" 
       });
 
       if (response.ok) {
-        alert("¡Rutina guardada exitosamente!");
-        navigate(-1); // Vuelve a la pantalla anterior automáticamente al guardar
+        alert("¡Rutina guardada y asignada exitosamente!");
+        navigate(-1); 
       } else {
         const errorData = await response.json();
         alert(`Error al guardar: ${errorData.message}`);
@@ -74,7 +94,6 @@ const TeacherPanel = () => {
     <div className="min-h-screen bg-zinc-50 p-6">
       <div className="max-w-4xl mx-auto">
         
-        {/* BOTÓN VOLVER */}
         <button 
           onClick={() => navigate(-1)} 
           className="mb-6 flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
@@ -84,11 +103,28 @@ const TeacherPanel = () => {
 
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-zinc-900">Editor de Rutinas</h1>
-          <p className="text-zinc-500">Crea y organiza el plan de entrenamiento</p>
+          <p className="text-zinc-500">Crea y asigna el plan de entrenamiento a un alumno</p>
         </header>
 
         {/* INFO GENERAL DE LA RUTINA */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+          
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Asignar a Alumno</label>
+            <select 
+              className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500 focus:bg-white transition-colors"
+              value={routine.studentId}
+              onChange={(e) => setRoutine({...routine, studentId: e.target.value})}
+            >
+              <option value="">Seleccionar alumno...</option>
+              {alumnos.map(alumno => (
+                <option key={alumno._id} value={alumno._id}>
+                  {alumno.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Nombre de la rutina</label>
             <input 
@@ -98,8 +134,9 @@ const TeacherPanel = () => {
               onChange={(e) => setRoutine({...routine, title: e.target.value})}
             />
           </div>
+          
           <div>
-            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Nivel del alumno</label>
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Nivel</label>
             <select 
               className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500 focus:bg-white transition-colors"
               value={routine.level}
@@ -173,7 +210,6 @@ const TeacherPanel = () => {
             {routine.days[activeDayIndex].exercises.map((ex, eIndex) => (
               <div key={eIndex} className="relative bg-zinc-50 p-5 rounded-2xl border border-zinc-200">
                 
-                {/* Botón eliminar ejercicio */}
                 <button 
                   onClick={() => removeExercise(eIndex)} 
                   className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white border border-zinc-200 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm"
@@ -183,7 +219,6 @@ const TeacherPanel = () => {
                 </button>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-10">
-                  {/* Nombre */}
                   <div>
                     <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Nombre del Ejercicio</label>
                     <input 
@@ -194,7 +229,6 @@ const TeacherPanel = () => {
                     />
                   </div>
 
-                  {/* Series y Reps */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Series</label>
@@ -217,7 +251,6 @@ const TeacherPanel = () => {
                   </div>
                 </div>
 
-                {/* Video Guía */}
                 <div className="mt-4">
                   <label className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Enlace de Video (Opcional)</label>
                   <input 
@@ -241,7 +274,7 @@ const TeacherPanel = () => {
           onClick={handleSaveRoutine}
           className="mt-8 w-full bg-zinc-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-zinc-800 hover:shadow-lg hover:-translate-y-0.5 transition-all"
         >
-          Guardar Rutina Completa
+          Guardar y Asignar Rutina
         </button>
       </div>
     </div>
