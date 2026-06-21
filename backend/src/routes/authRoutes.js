@@ -5,6 +5,7 @@ import {
   registerUser,
   logout,
   verifyDni,
+  getAlumnos
 } from "../controllers/authController.js";
 import { validateToken } from "../middlewares/validateToken.js";
 
@@ -18,5 +19,6 @@ router.post("/logout", logout);
 
 // Ruta protegida
 router.get("/profile", validateToken, profile);
+router.get("/alumnos", validateToken, getAlumnos);
 
 export default router;

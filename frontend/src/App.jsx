@@ -16,17 +16,25 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          
+          {/* Rutas accesibles para CUALQUIER usuario logueado */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/rutinas" element={<RoutineList />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
+
+          {/* Ruta EXCLUSIVA del Profesor (Se le cambió el path para no chocar) */}
           <Route element={<ProtectedRoute allowedRoles={["profesor"]} />}>
-          <Route path="/rutinas" element={<TeacherPanel />} />
+            <Route path="/teacher-panel" element={<TeacherPanel />} />
           </Route>
+
+          {/* Ruta EXCLUSIVA del Super Admin */}
           <Route element={<ProtectedRoute allowedRoles={["superAdmin"]} />}>
             <Route path="/nexusControl" element={<SuperAdminPanel />} />
           </Route>
+
+          {/* Ruta EXCLUSIVA del Admin (Gimnasio) */}
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route
               path="/admin-dashboard"
@@ -44,4 +52,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; 
