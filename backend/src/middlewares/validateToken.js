@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
 export const validateToken = (req, res, next) => {
-  const { token } = req.cookies; // Requiere instalar y usar 'cookie-parser' en tu index.js
+  const { token } = req.cookies; 
 
   if (!token) {
     return res.status(401).json({ message: "No token, autorización denegada" });
@@ -12,7 +12,7 @@ export const validateToken = (req, res, next) => {
       return res.status(403).json({ message: "Token inválido" });
     }
     
-    // Guardamos los datos decodificados en req.user para usarlos en el controlador 'profile'
+    // Guardamos los datos decodificados en req.user
     req.user = user; 
     next();
   });

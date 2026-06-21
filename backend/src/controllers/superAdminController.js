@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 // Obtener todos los clientes (gimnasios/admins)
 export const getAdmins = async (req, res) => {
@@ -21,7 +22,6 @@ export const toggleAdminAccess = async (req, res) => {
       return res.status(404).json({ message: "Administrador no encontrado" });
     }
 
-    // Invertimos el estado actual (si era true pasa a false, y viceversa)
     admin.isActive = !admin.isActive;
     await admin.save();
 
@@ -34,18 +34,24 @@ export const toggleAdminAccess = async (req, res) => {
     res.status(500).json({ message: "Error al actualizar el acceso" });
   }
 };
+
+// Crear nuevo Cliente Admin
 export const createAdmin = async (req, res) => {
   try {
     const { name, dni, licenseStartDate, licenseEndDate } = req.body;
     const existingUser = await User.findOne({ dni });
     if (existingUser) {
-      return res.status(400).json({ message: "DNI already registered" });
+      return res.status(400).json({ message: "El DNI ya se encuentra registrado" });
     }
+
+    // ENCRIPTAMOS EL DNI PARA QUE DEJE LOGUEARSE DESPUÉS
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(dni, salt);
 
     const newAdmin = new User({
       name,
       dni,
-      password: dni, // 🔥 ACÁ ESTÁ LA MAGIA: Le pasamos el DNI como contraseña inicial
+      password: hashedPassword, 
       role: "admin", 
       isActive: true, 
       licenseStartDate,
@@ -56,11 +62,11 @@ export const createAdmin = async (req, res) => {
     res.status(201).json(savedAdmin);
   } catch (error) {
     console.error("Error creating admin:", error);
-    // Agregamos error.message para que si vuelve a fallar, el backend te diga EXACTAMENTE qué falta
     res.status(500).json({ message: error.message || "Error creating client" });
   }
 };
-// 1. RENOVAR (Suma 1 mes y reactiva automáticamente)
+
+// Renovar Licencia
 export const renewAdmin = async (req, res) => {
   try {
     const admin = await User.findById(req.params.id);
@@ -69,12 +75,11 @@ export const renewAdmin = async (req, res) => {
     const today = new Date();
     const currentEndDate = new Date(admin.licenseEndDate);
     
-    // Si ya está vencido cuenta desde hoy, si no, le suma al colchón que le queda
     const baseDate = currentEndDate > today ? currentEndDate : today;
     baseDate.setMonth(baseDate.getMonth() + 1);
 
     admin.licenseEndDate = baseDate;
-    admin.isActive = true; // Lo reactiva por si estaba suspendido
+    admin.isActive = true; 
     
     await admin.save();
     res.status(200).json(admin);
@@ -84,7 +89,7 @@ export const renewAdmin = async (req, res) => {
   }
 };
 
-// 2. ELIMINAR CLIENTE
+// Eliminar Cliente
 export const deleteAdmin = async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -94,7 +99,7 @@ export const deleteAdmin = async (req, res) => {
   }
 };
 
-// 3. EDITAR DATOS (Nombre o Fechas)
+// Editar datos
 export const updateAdmin = async (req, res) => {
   try {
     const { name, licenseStartDate, licenseEndDate } = req.body;
