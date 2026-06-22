@@ -5,7 +5,6 @@ import { verifyDni } from '../../service/authService';
 import SwipeButton from '../../components/SwipeButton/SwipeButton'; 
 import { z } from 'zod';
 
-// ESQUEMA DE ZOD
 const loginSchema = z.object({
   dni: z.string().regex(/^\d{7,8}$/, "El DNI debe contener entre 7 y 8 números.")
 });
@@ -20,15 +19,13 @@ const Login = () => {
 
   const handleInputChange = (e) => {
     const value = e.target.value;
-    // Permite solo números (o vacío para poder borrar)
     if (value === '' || /^[0-9\b]+$/.test(value)) {
       setDni(value);
-      setError(''); 
+      setError('');
     }
   };
 
   const handleLoginAction = async () => {
-    // VALIDACIÓN CON ZOD
     const result = loginSchema.safeParse({ dni });
     
     if (!result.success) {
@@ -43,16 +40,15 @@ const Login = () => {
       const response = await verifyDni(dni);
       
       if (response.success) {
-        signin(response.user); 
+        signin(response.user);
         localStorage.setItem('nexus_token', response.token);
 
-        // RUTEO INTELIGENTE BASADO EN ROLES
         if (response.user?.role === 'superAdmin') {
-          navigate('/nexusControl'); 
+          navigate('/nexusControl');
         } else if (response.user?.role === 'admin') {
-          navigate('/admin-dashboard'); // Panel del Gimnasio
+          navigate('/adminDashboard');
         } else {
-          navigate('/'); // Profes y Alumnos
+          navigate('/');
         }
       }
     } catch (err) {
