@@ -24,13 +24,18 @@ const routineSchema = new mongoose.Schema(
     },
     days: [daySchema],
     
-    // 🔥 ESTA ES LA MAGIA QUE FALTABA
     teacherId: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'User', 
       required: true 
     },
     studentId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'User',
+      required: true 
+    },
+
+    gymId: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'User',
       required: true 

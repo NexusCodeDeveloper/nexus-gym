@@ -10,14 +10,13 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       trim: true,
-      // Lo dejamos opcional por si algunos usuarios entran solo con DNI
     },
     password: {
       type: String,
     },
     dni: {
       type: String,
-      required: false, // Cambiado a false para que no explote el registro por email
+      required: false,
       trim: true,
     },
     role: {
@@ -37,7 +36,7 @@ const userSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Referencia al ID del gimnasio (admin) que lo creó
+      ref: 'User',
       default: null
     }
   },
