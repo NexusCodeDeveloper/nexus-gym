@@ -2,10 +2,10 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { createAccessToken } from "../libs/jwt.js";
 
-// Registro de usuario
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, dni } = req.body;
+    
+    const { name, email, password, role, dni, createdBy } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -19,8 +19,9 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "alumno", 
-      dni
+      role: role || "alumno",
+      dni,
+      createdBy: createdBy || null 
     });
 
     await newUser.save();
@@ -32,13 +33,11 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Logout de usuario
 export const logout = (req, res) => {
   res.cookie("token", "", { expires: new Date(0) });
   return res.status(200).json({ message: "Sesión cerrada exitosamente" });
 };
 
-// Login de usuario
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -70,9 +69,9 @@ export const loginUser = async (req, res) => {
         name: userFound.name,
         email: userFound.email,
         role: exactRole,
-        isActive: userFound.isActive, // Enviado al frontend
-        licenseStartDate: userFound.licenseStartDate, // Enviado al frontend
-        licenseEndDate: userFound.licenseEndDate, // Enviado al frontend
+        isActive: userFound.isActive,
+        licenseStartDate: userFound.licenseStartDate,
+        licenseEndDate: userFound.licenseEndDate,
       },
     });
   } catch (error) {
@@ -81,7 +80,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Perfil de usuario (El que se ejecuta al presionar F5)
 export const profile = async (req, res) => {
   try {
     const userFound = await User.findById(req.user.id);
@@ -95,9 +93,9 @@ export const profile = async (req, res) => {
       name: userFound.name,
       email: userFound.email,
       role: userFound.role,
-      isActive: userFound.isActive, // Enviado al frontend
-      licenseStartDate: userFound.licenseStartDate, // Enviado al frontend
-      licenseEndDate: userFound.licenseEndDate, // Enviado al frontend
+      isActive: userFound.isActive,
+      licenseStartDate: userFound.licenseStartDate,
+      licenseEndDate: userFound.licenseEndDate,
     });
   } catch (error) {
     console.error("Error en profile", error.message);
@@ -107,7 +105,6 @@ export const profile = async (req, res) => {
   }
 };
 
-// Acceso rápido por DNI
 export const verifyDni = async (req, res) => {
   try {
     const { dni } = req.body;
@@ -135,9 +132,9 @@ export const verifyDni = async (req, res) => {
         name: userFound.name,
         dni: userFound.dni,
         role: exactRole,
-        isActive: userFound.isActive, // Enviado al frontend
-        licenseStartDate: userFound.licenseStartDate, // Enviado al frontend
-        licenseEndDate: userFound.licenseEndDate, // Enviado al frontend
+        isActive: userFound.isActive,
+        licenseStartDate: userFound.licenseStartDate,
+        licenseEndDate: userFound.licenseEndDate,
       },
     });
   } catch (error) {
@@ -145,10 +142,23 @@ export const verifyDni = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };
+
 export const getAlumnos = async (req, res) => {
   try {
-    // Busca solo a los usuarios que tengan el rol "alumno"
-    const alumnos = await User.find({ role: "alumno" }).select("name email _id");
+
+    const requester = await User.findById(req.user.id);
+
+    if (!requester) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const gymId = requester.role === "admin" ? requester._id : requester.createdBy;
+
+    const alumnos = await User.find({ 
+      role: "alumno", 
+      createdBy: gymId 
+    }).select("name email _id");
+
     res.status(200).json(alumnos);
   } catch (error) {
     console.error("Error obteniendo alumnos:", error);

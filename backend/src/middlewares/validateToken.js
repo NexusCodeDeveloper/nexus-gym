@@ -11,9 +11,7 @@ export const validateToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ message: "Token inválido" });
     }
-    
-    // Guardamos los datos decodificados en req.user
-    req.user = user; 
+    req.user = user;
     next();
   });
-};
+};  
