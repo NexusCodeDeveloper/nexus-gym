@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// URL base de tu backend
 const API_URL = "http://localhost:4000/api/auth";
 
 export const verifyDni = async (dni) => {
@@ -8,7 +7,7 @@ export const verifyDni = async (dni) => {
     const response = await axios.post(
       `${API_URL}/verify-dni`,
       { dni },
-      { withCredentials: true } 
+      { withCredentials: true }
     );
     return response.data;
   } catch (error) {
