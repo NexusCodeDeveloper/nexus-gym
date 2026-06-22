@@ -9,17 +9,13 @@ import cookieParser from "cookie-parser";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
-// Cargar variables de entorno desde el archivo .env
 dotenv.config();
 
-// Conexión a la base de datos
 connectDB();
 
-// Configuración del servidor
 const app = express();
 const port = process.env.PORT || 4000;
 
-// Middlewares principales
 app.use(
   cors({
     origin: "http://localhost:5173", 
@@ -30,18 +26,15 @@ app.use(morgan("dev"));
 app.use(express.json()); 
 app.use(cookieParser()); 
 
-// Rutas
 app.get("/", (req, res) => {
   res.send("¡Servidor backend funcionando en docker!");
 });
 
-// Rutas de la API 
 app.use("/api/auth", authRoutes);       
 app.use("/api/routines", routineRoutes); 
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Iniciar el servidor
 app.listen(port, () => {
   console.log(`Servidor backend corriendo en http://localhost:${port}`);
 });
