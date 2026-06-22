@@ -9,9 +9,8 @@ const HomePage = () => {
     <div className="min-h-screen bg-[#fafafa] text-zinc-900 p-4 sm:p-8 font-sans selection:bg-zinc-900 selection:text-white">
       <div className="max-w-5xl mx-auto space-y-10">
         
-        {/* CABECERA PRINCIPAL */}
         <header className="relative bg-white border border-zinc-200/80 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 overflow-hidden">
-          {/* Efecto decorativo de fondo */}
+
           <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-zinc-100 to-transparent rounded-full blur-3xl -z-10" />
           
           <div className="space-y-1">
@@ -19,57 +18,50 @@ const HomePage = () => {
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-600">
                 Hola, {user?.name || 'Usuario'}
               </h1>
-              <span className="text-2xl animate-pulse">👋🏼</span>
             </div>
             <p className="text-zinc-500 font-medium text-sm sm:text-base">
               Bienvenido a <span className="text-zinc-950 font-bold">Nexus GYM</span> • Gestión de Alto Rendimiento
             </p>
           </div>
           
-          {/* BOTONES DE ACCIÓN */}
           <div className="flex flex-wrap items-center gap-3">
-            
-            {/* BOTÓN EXCLUSIVO SUPER ADMIN */}
+  
             {user?.role === 'superAdmin' && (
               <Link 
                 to="/nexusControl" 
                 className="bg-red-600 text-white px-5 py-3 rounded-2xl text-sm font-bold hover:bg-red-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2"
               >
-                <span className="text-base">👑</span> Panel Super Admin
+                <span className="text-base">Panel Super Admin</span> 
               </Link>
             )}
 
-            {/* BOTÓN EXCLUSIVO ADMIN DE GIMNASIO */}
             {user?.role === 'admin' && (
               <Link 
-                to="/admin-dashboard" 
+                to="/adminDashboard" 
                 className="bg-blue-600 text-white px-5 py-3 rounded-2xl text-sm font-bold hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2"
               >
-                <span className="text-base">🏢</span> Gestión de Gimnasio
+                <span className="text-base"> Gestión de Gimnasio</span>
               </Link>
             )}
 
-            {/* BOTÓN EXCLUSIVO PROFESOR */}
             {user?.role === 'profesor' && (
               <Link 
                 to="/rutinas" 
                 className="bg-zinc-900 text-white px-5 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2"
               >
-                <span className="text-base">⚡</span> Mis Rutinas Creadas
+                <span className="text-base">Mis Rutinas Creadas</span> 
               </Link>
             )}
 
-            {/* BOTÓN EXCLUSIVO ALUMNO */}
             {user?.role === 'alumno' && (
               <Link 
                 to="/rutinas" 
                 className="bg-zinc-900 text-white px-5 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2"
               >
-                <span className="text-base">🏋🏼‍♂️</span> Mis Rutinas
+                <span className="text-base">Mis Rutinas</span> 
               </Link>
             )}
-            
-            {/* BOTÓN DE PERFIL (Para todos) */}
+
             <Link 
               to="/profile" 
               className="bg-white border border-zinc-200 text-zinc-700 px-5 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-sm transition-all"
@@ -79,10 +71,8 @@ const HomePage = () => {
           </div>
         </header>
 
-        {/* CONTENIDO DE NUESTRO TABLERO INTERACTIVO */}
         <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* TARJETA 1: SECCIÓN DE PROGRESO / ESTADÍSTICAS */}
+
           <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group md:col-span-2">
             <div>
               <div className="flex items-center justify-between mb-6">
@@ -93,8 +83,7 @@ const HomePage = () => {
                   {user?.role === 'superAdmin' ? 'Global' : user?.role === 'admin' ? 'Gimnasio' : user?.role === 'profesor' ? 'Alumnos' : 'Rendimiento'}
                 </span>
               </div>
-              
-              {/* Contenedor del gráfico */}
+
               <div className="h-44 flex flex-col items-center justify-center border border-dashed border-zinc-200 bg-zinc-50/50 rounded-2xl p-4">
                 {user?.role === 'alumno' ? (
                   <div className="flex gap-2 items-end h-28 w-full justify-center px-4">
@@ -124,7 +113,6 @@ const HomePage = () => {
             <p className="text-xs text-zinc-400 font-medium mt-4">Última actualización: Hoy, hace unos instantes</p>
           </div>
 
-          {/* TARJETA 2: ENFOQUE DIRECTO DEL DÍA / ACCESOS RÁPIDOS */}
           <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between mb-6">
@@ -134,7 +122,6 @@ const HomePage = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               </div>
 
-              {/* Acciones dinámicas */}
               <div className="space-y-3">
                 {user?.role === 'superAdmin' ? (
                   <>
@@ -152,7 +139,7 @@ const HomePage = () => {
                 ) : user?.role === 'admin' ? (
                   <>
                     <Link 
-                      to="/admin-dashboard" 
+                      to="/adminDashboard" 
                       className="w-full p-3 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-xl flex items-center justify-between transition-all font-semibold text-sm group/btn"
                     >
                       <span>Gestionar Staff</span>
