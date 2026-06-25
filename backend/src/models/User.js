@@ -38,6 +38,19 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    metrics: {
+      height: { type: Number, default: 0 },
+      weightHistory: [{
+        date: { type: Date, default: Date.now },
+        weight: { type: Number, required: true }
+      }],
+      prsHistory: [{
+        date: { type: Date, default: Date.now },
+        squat: { type: Number, default: 0 },
+        benchPress: { type: Number, default: 0 },
+        deadlift: { type: Number, default: 0 }
+      }]
     }
   },
   {
