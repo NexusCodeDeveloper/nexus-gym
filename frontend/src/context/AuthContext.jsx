@@ -1,11 +1,9 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import axios from "axios";
+import Swal from "sweetalert2";
 
-// 1. creamos el contexto
 export const AuthContext = createContext();
 
-// 2. Creamos un hook personalizado
-// en vez de importar 3 cosas distintas en cada página, solo importamos "useAuth"
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -14,30 +12,55 @@ export const useAuth = () => {
   return context;
 };
 
-// 3. creamos el provider
 export const AuthProvider = ({ children }) => {
-  // guardamos los datos del usuario
   const [user, setUser] = useState(null);
-  // Aquí guardamos si está logueado o no (true o false)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  // Estado para saber si la app apenas está comprobando la sesión
   const [loading, setLoading] = useState(true);
-  // Función que llamaremos cuando el usuario haga login con éxito
+
   const signin = (userData) => {
-    setUser(userData); // guarda los datos que vienen del backend
-    setIsAuthenticated(true); // cambia el estado a logueado
-  };
-  // Función que llamaremos cuando el usuario cierre sesión
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
+    setUser(userData);
+    setIsAuthenticated(true);
   };
 
-  // Función que se ejecuta automáticamente cuando entras a la app o presionas F5
+  const logout = () => {
+    Swal.fire({
+      title: '¿Quieres cerrar la sesión?',
+      text: "Serás redirigido a la página de inicio de sesión.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'No, cancelar'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axios.post("http://localhost:4000/api/auth/logout", {}, { 
+            withCredentials: true 
+          });
+          setUser(null);
+          setIsAuthenticated(false);
+          window.location.href = '/login';
+        } catch (error) {
+          console.error("Error al cerrar sesión", error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Hubo un problema al cerrar sesión. Inténtalo de nuevo.',
+          });
+        }
+      }
+    });
+  };
+
+  // 🔥 NUEVA FUNCIÓN: Permite actualizar el estado global del usuario en vivo
+  const updateUser = (updatedData) => {
+    setUser(updatedData);
+  };
+
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        // Vamos al backend a preguntar si la cookie es válida
         const res = await axios.get("http://localhost:4000/api/auth/profile", {
           withCredentials: true,
         });
@@ -47,16 +70,15 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
       } finally {
-        setLoading(false); // Terminamos de comprobar
+        setLoading(false);
       }
     };
     checkLogin();
-  }, []); // El array vacío significa que solo se ejecuta UNA vez al cargar
+  }, []); 
 
   return (
-    // Todo lo que pongamos en 'value' será accesible desde cualquier página
     <AuthContext.Provider
-      value={{ user, isAuthenticated, loading, signin, logout }}
+      value={{ user, isAuthenticated, loading, signin, logout, updateUser }}
     >
       {children}
     </AuthContext.Provider>

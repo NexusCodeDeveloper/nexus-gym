@@ -4,30 +4,58 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true, // Es obligatorio
-      trim: true, // Corta los espacios en blanco al inicio y al final
+      required: true,
+      trim: true,
     },
     email: {
       type: String,
-      required: true,
-      unique: true, // No pueden haber dos usuarios con el mismo email
       trim: true,
-      lowercase: true, // Siempre lo guarda en minúsculas por seguridad
     },
     password: {
       type: String,
-      required: true,
+    },
+    dni: {
+      type: String,
+      required: false,
+      trim: true,
     },
     role: {
       type: String,
-      enum: ["user", "admin"], // Solo permite estos dos valores
-      default: "user", // Por defecto será un usuario normal
+      enum: ['superAdmin', 'admin', 'profesor', 'alumno'], 
+      default: 'alumno', 
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    licenseStartDate: {
+      type: Date,
+    },
+    licenseEndDate: {
+      type: Date,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    metrics: {
+      height: { type: Number, default: 0 },
+      weightHistory: [{
+        date: { type: Date, default: Date.now },
+        weight: { type: Number, required: true }
+      }],
+      prsHistory: [{
+        date: { type: Date, default: Date.now },
+        squat: { type: Number, default: 0 },
+        benchPress: { type: Number, default: 0 },
+        deadlift: { type: Number, default: 0 }
+      }]
+    }
   },
   {
-    timestamps: true, // Crea automáticamente los campos 'createdAt' y 'updatedAt'
-  },
+    timestamps: true, 
+  }
 );
 
-const User = mongoose.model("User", userSchema); // Crea el modelo de usuario a partir del esquema
-export default User; // Exporta el modelo para usarlo en otras partes de la aplicación
+export default mongoose.model("User", userSchema);
