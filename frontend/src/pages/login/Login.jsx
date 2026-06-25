@@ -3,34 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext'; 
 import { verifyDni } from '../../service/authService'; 
 import SwipeButton from '../../components/SwipeButton/SwipeButton'; 
+import { z } from 'zod';
+
+const loginSchema = z.object({
+  dni: z.string().regex(/^\d{7,8}$/, "El DNI debe contener entre 7 y 8 números.")
+});
 
 const Login = () => {
-  // 1. Estados
   const [dni, setDni] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // 2. Hooks de navegación y contexto
   const navigate = useNavigate();
   const { signin } = useAuth();
-
-  // 3. Funciones de validación y manejo de inputs (ESTA ES LA QUE TE FALTABA)
-  const isValidDniFormat = (value) => {
-    const dniRegex = /^\d{7,8}$/;
-    return dniRegex.test(value);
-  };
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     if (value === '' || /^[0-9\b]+$/.test(value)) {
       setDni(value);
-      setError(''); 
+      setError('');
     }
   };
 
   const handleLoginAction = async () => {
-    if (!isValidDniFormat(dni)) {
-      setError('El DNI debe contener entre 7 y 8 números.');
+    const result = loginSchema.safeParse({ dni });
+    
+    if (!result.success) {
+      setError(result.error.format().dni._errors[0]);
       return;
     }
 
@@ -41,14 +40,19 @@ const Login = () => {
       const response = await verifyDni(dni);
       
       if (response.success) {
-
-        signin(response.user); 
-
+        signin(response.user);
         localStorage.setItem('nexus_token', response.token);
-        navigate('/'); 
+
+        if (response.user?.role === 'superAdmin') {
+          navigate('/nexusControl');
+        } else if (response.user?.role === 'admin') {
+          navigate('/adminDashboard');
+        } else {
+          navigate('/');
+        }
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Ocurrió un error al intentar ingresar.');
     } finally {
       setIsLoading(false);
     }
@@ -59,12 +63,8 @@ const Login = () => {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-zinc-200 p-8">
         
         <div className="mb-8 text-center">
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
-            NEXUS GYM
-          </h2>
-          <p className="mt-2 text-sm text-zinc-500">
-            Bienvenidos
-          </p>
+          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">NEXUS GYM</h2>
+          <p className="mt-2 text-sm text-zinc-500">Bienvenidos</p>
         </div>
 
         <div className="space-y-6">
@@ -88,11 +88,7 @@ const Login = () => {
                 disabled:opacity-50 disabled:cursor-not-allowed
               `}
             />
-            {error && (
-              <p className="mt-2 text-sm text-red-500 font-medium animate-pulse">
-                {error}
-              </p>
-            )}
+            {error && <p className="mt-2 text-sm text-red-500 font-medium animate-pulse">{error}</p>}
           </div>
 
           <SwipeButton 

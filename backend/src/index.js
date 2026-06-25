@@ -4,38 +4,39 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import routineRoutes from "./routes/routineRoutes.js"; 
 import cookieParser from "cookie-parser";
+import superAdminRoutes from "./routes/superAdminRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js"; 
 
-// Cargar variables de entorno desde el archivo .env
 dotenv.config();
 
-// Conexión a la base de datos
 connectDB();
 
-// Configuración del servidor
 const app = express();
 const port = process.env.PORT || 4000;
 
-// Middlewares principales
 app.use(
   cors({
-    origin: "http://localhost:5173", // Solo permitimos peticiones de tu frontend
-    credentials: true, // Habilitamos el uso de cookies para el login
-  }),
+    origin: "http://localhost:5173", 
+    credentials: true, 
+  })
 );
-app.use(morgan("dev")); // Permite visualizar solicitudes HTTP en la consola
-app.use(express.json()); // Permite parsear JSON en el body de las solicitudes
-app.use(cookieParser()); // Permite parsear cookies en las solicitudes
+app.use(morgan("dev")); 
+app.use(express.json()); 
+app.use(cookieParser()); 
 
-// Rutas
-// Ruta de prueba para verificar que el servidor está funcionando
 app.get("/", (req, res) => {
   res.send("¡Servidor backend funcionando en docker!");
 });
-// Rutas de la API
-app.use("/api/auth", authRoutes);
 
-// Iniciar el servidor
+app.use("/api/auth", authRoutes);       
+app.use("/api/routines", routineRoutes); 
+app.use("/api/super-admin", superAdminRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/profile", profileRoutes); 
+
 app.listen(port, () => {
   console.log(`Servidor backend corriendo en http://localhost:${port}`);
 });

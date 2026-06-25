@@ -2,16 +2,13 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { createAccessToken } from "../libs/jwt.js";
 
-// Registro de usuario
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, dni, createdBy, licenseStartDate, licenseEndDate } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return res
-        .status(400)
-        .json({ message: "El usuario ya existe con ese email" });
+      return res.status(400).json({ message: "El usuario ya existe con ese email" });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -21,7 +18,11 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role,
+      role: role || "alumno",
+      dni,
+      createdBy: createdBy || null,
+      licenseStartDate,
+      licenseEndDate
     });
 
     await newUser.save();
@@ -33,36 +34,30 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Logout de usuario
 export const logout = (req, res) => {
   res.cookie("token", "", { expires: new Date(0) });
   return res.status(200).json({ message: "Sesión cerrada exitosamente" });
 };
 
-// Login de usuario
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const userFound = await User.findOne({ email });
     if (!userFound) {
-      console.error("Error en userFound");
-      return res
-        .status(400)
-        .json({ message: "Email o contraseña incorrectos" });
+      return res.status(400).json({ message: "Email o contraseña incorrectos" });
     }
 
     const isMatch = await bcrypt.compare(password, userFound.password);
     if (!isMatch) {
-      console.error("Error en el match entre contraseñas");
-      return res
-        .status(400)
-        .json({ message: "Email o contraseña incorrectos" });
+      return res.status(400).json({ message: "Email o contraseña incorrectos" });
     }
+
+    const exactRole = userFound.role;
 
     const token = await createAccessToken({
       id: userFound._id,
-      role: userFound.role,
+      role: exactRole,
     });
 
     res.cookie("token", token);
@@ -74,7 +69,11 @@ export const loginUser = async (req, res) => {
         id: userFound._id,
         name: userFound.name,
         email: userFound.email,
-        role: userFound.role,
+        role: exactRole,
+        isActive: userFound.isActive,
+        licenseStartDate: userFound.licenseStartDate,
+        licenseEndDate: userFound.licenseEndDate,
+        metrics: userFound.metrics, // 🔥 SOLUCIÓN: Agregamos metrics
       },
     });
   } catch (error) {
@@ -83,7 +82,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Perfil de usuario
 export const profile = async (req, res) => {
   try {
     const userFound = await User.findById(req.user.id);
@@ -97,15 +95,18 @@ export const profile = async (req, res) => {
       name: userFound.name,
       email: userFound.email,
       role: userFound.role,
+      isActive: userFound.isActive,
+      licenseStartDate: userFound.licenseStartDate,
+      licenseEndDate: userFound.licenseEndDate,
+      metrics: userFound.metrics, // 🔥 SOLUCIÓN: El eslabón perdido agregado acá
     });
   } catch (error) {
     console.error("Error en profile", error.message);
     res.status(500).json({
-      message: "Error interno del servidor, intenta nuevamente en unos minutos ",
+      message: "Error interno del servidor, intenta nuevamente en unos minutos",
     });
   }
 };
-
 
 export const verifyDni = async (req, res) => {
   try {
@@ -114,14 +115,14 @@ export const verifyDni = async (req, res) => {
     const userFound = await User.findOne({ dni });
     
     if (!userFound) {
-      return res
-        .status(404)
-        .json({ message: "El DNI ingresado no tiene acceso. Consulte en recepcion" });
+      return res.status(404).json({ message: "El DNI ingresado no tiene acceso. Consulte en recepcion" });
     }
+
+    const exactRole = userFound.role;
 
     const token = await createAccessToken({
       id: userFound._id,
-      role: userFound.role,
+      role: exactRole,
     });
 
     res.cookie("token", token);
@@ -133,11 +134,35 @@ export const verifyDni = async (req, res) => {
         id: userFound._id,
         name: userFound.name,
         dni: userFound.dni,
-        role: userFound.role,
+        role: exactRole,
+        isActive: userFound.isActive,
+        licenseStartDate: userFound.licenseStartDate,
+        licenseEndDate: userFound.licenseEndDate,
+        metrics: userFound.metrics, // 🔥 SOLUCIÓN: Agregamos metrics
       },
     });
   } catch (error) {
     console.error("Error en verifyDni:", error.message);
     res.status(500).json({ message: "Error interno del servidor" });
+  }
+};
+
+export const getAlumnos = async (req, res) => {
+  try {
+
+    const requester = await User.findById(req.user.id);
+
+    if (!requester) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const gymId = requester.role === "admin" ? requester._id : requester.createdBy;
+
+   const alumnos = await User.find({ role: "alumno", createdBy: gymId }).select("name email _id licenseStartDate licenseEndDate isActive");;
+
+    res.status(200).json(alumnos);
+  } catch (error) {
+    console.error("Error obteniendo alumnos:", error);
+    res.status(500).json({ message: "Error al obtener la lista de alumnos" });
   }
 };

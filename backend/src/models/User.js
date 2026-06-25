@@ -9,27 +9,52 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
-      unique: true, // Evita que dos personas se registren con el mismo email
       trim: true,
     },
     password: {
       type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      default: "user", // Puedes cambiarlo a 'admin' o el rol por defecto que necesites
     },
     dni: {
       type: String,
-      required: true,
-      unique: true,
+      required: false,
       trim: true,
     },
+    role: {
+      type: String,
+      enum: ['superAdmin', 'admin', 'profesor', 'alumno'], 
+      default: 'alumno', 
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    licenseStartDate: {
+      type: Date,
+    },
+    licenseEndDate: {
+      type: Date,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    metrics: {
+      height: { type: Number, default: 0 },
+      weightHistory: [{
+        date: { type: Date, default: Date.now },
+        weight: { type: Number, required: true }
+      }],
+      prsHistory: [{
+        date: { type: Date, default: Date.now },
+        squat: { type: Number, default: 0 },
+        benchPress: { type: Number, default: 0 },
+        deadlift: { type: Number, default: 0 }
+      }]
+    }
   },
   {
-    timestamps: true, // Crea automáticamente los campos createdAt y updatedAt
+    timestamps: true, 
   }
 );
 
