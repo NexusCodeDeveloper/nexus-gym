@@ -4,8 +4,7 @@ import { createAccessToken } from "../libs/jwt.js";
 
 export const registerUser = async (req, res) => {
   try {
-    
-    const { name, email, password, role, dni, createdBy } = req.body;
+    const { name, email, password, role, dni, createdBy, licenseStartDate, licenseEndDate } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -21,7 +20,9 @@ export const registerUser = async (req, res) => {
       password: hashedPassword,
       role: role || "alumno",
       dni,
-      createdBy: createdBy || null 
+      createdBy: createdBy || null,
+      licenseStartDate,
+      licenseEndDate
     });
 
     await newUser.save();
@@ -72,6 +73,7 @@ export const loginUser = async (req, res) => {
         isActive: userFound.isActive,
         licenseStartDate: userFound.licenseStartDate,
         licenseEndDate: userFound.licenseEndDate,
+        metrics: userFound.metrics, // 🔥 SOLUCIÓN: Agregamos metrics
       },
     });
   } catch (error) {
@@ -96,6 +98,7 @@ export const profile = async (req, res) => {
       isActive: userFound.isActive,
       licenseStartDate: userFound.licenseStartDate,
       licenseEndDate: userFound.licenseEndDate,
+      metrics: userFound.metrics, // 🔥 SOLUCIÓN: El eslabón perdido agregado acá
     });
   } catch (error) {
     console.error("Error en profile", error.message);
@@ -135,6 +138,7 @@ export const verifyDni = async (req, res) => {
         isActive: userFound.isActive,
         licenseStartDate: userFound.licenseStartDate,
         licenseEndDate: userFound.licenseEndDate,
+        metrics: userFound.metrics, // 🔥 SOLUCIÓN: Agregamos metrics
       },
     });
   } catch (error) {
@@ -154,10 +158,7 @@ export const getAlumnos = async (req, res) => {
 
     const gymId = requester.role === "admin" ? requester._id : requester.createdBy;
 
-    const alumnos = await User.find({ 
-      role: "alumno", 
-      createdBy: gymId 
-    }).select("name email _id");
+   const alumnos = await User.find({ role: "alumno", createdBy: gymId }).select("name email _id licenseStartDate licenseEndDate isActive");;
 
     res.status(200).json(alumnos);
   } catch (error) {

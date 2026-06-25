@@ -8,6 +8,7 @@ import routineRoutes from "./routes/routineRoutes.js";
 import cookieParser from "cookie-parser";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js"; 
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/routines", routineRoutes); 
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/profile", profileRoutes); 
 
 app.listen(port, () => {
   console.log(`Servidor backend corriendo en http://localhost:${port}`);
