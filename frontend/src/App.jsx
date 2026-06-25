@@ -3,13 +3,13 @@ import HomePage from "./pages/HomePage.jsx";
 import Login from "./pages/login/Login.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import StaffManagement from "./pages/admin/StaffManangement.jsx";
+import UserManagement from "./pages/admin/UserManagement.jsx";
 import SuperAdminPanel from "./pages/superAdmin/SuperAdminPanel.jsx";
 import LicenseGuard from "./components/license/LicenseGuard.jsx";
 import TeacherPanel from "./pages/TeacherPanel/TeacherPanel.jsx";
 import RoutineList from "./pages/routineList/RoutineList.jsx";
 import RoutineView from "./pages/routineView/RoutineView.jsx";
+import ProfilePage from "./pages/profile/ProfilePage.jsx";
 
 function App() {
   return (
@@ -31,7 +31,7 @@ function App() {
             <Route path="/nexusControl" element={<SuperAdminPanel />} />
           </Route>         
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-            <Route path="/adminDashboard" element={<LicenseGuard><StaffManagement /></LicenseGuard>} />
+            <Route path="/adminDashboard" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
           </Route>
         </Routes>
       </BrowserRouter>
