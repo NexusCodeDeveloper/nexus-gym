@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../context/AuthContext'; 
@@ -8,33 +8,36 @@ const StudentProfile = ({ user }) => {
   const { updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   
-  // Extraer el último dato del historial para mostrar en los inputs
-  const latestWeight = user?.metrics?.weightHistory?.length > 0 
+  // calcular valores actuales desde user (siempre actualizados)
+  const currentWeight = user?.metrics?.weightHistory?.length > 0 
     ? user.metrics.weightHistory[user.metrics.weightHistory.length - 1].weight 
     : 0;
-    
-  const latestPrs = user?.metrics?.prsHistory?.length > 0 
+  const currentHeight = user?.metrics?.height || 0;
+  const currentPrs = user?.metrics?.prsHistory?.length > 0 
     ? user.metrics.prsHistory[user.metrics.prsHistory.length - 1] 
     : { squat: 0, benchPress: 0, deadlift: 0 };
 
   const [metrics, setMetrics] = useState({
-    weight: latestWeight,
-    height: user?.metrics?.height || 0,
+    weight: currentWeight,
+    height: currentHeight,
     prs: {
-      squat: latestPrs.squat || 0,
-      benchPress: latestPrs.benchPress || 0,
-      deadlift: latestPrs.deadlift || 0
+      squat: currentPrs.squat || 0,
+      benchPress: currentPrs.benchPress || 0,
+      deadlift: currentPrs.deadlift || 0
     }
   });
 
-  const imc = metrics.height > 0 ? (metrics.weight / Math.pow(metrics.height / 100, 2)).toFixed(1) : 0;
-  const imcStatus = imc < 18.5 ? "Bajo peso" : imc < 25 ? "Normal" : imc < 30 ? "Sobrepeso" : "Obesidad";
+  const imc = currentHeight > 0 ? (currentWeight / Math.pow(currentHeight / 100, 2)).toFixed(1) : 0;
 
   // Formatear los datos para el gráfico de Recharts
-  const chartData = user?.metrics?.weightHistory?.map(entry => ({
-    fecha: new Date(entry.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }),
-    peso: entry.weight
-  })) || [];
+  const chartData = useMemo(() => {
+    const history = user?.metrics?.weightHistory;
+    if (!history || history.length === 0) return [];
+    return history.map(entry => ({
+      fecha: entry.date ? new Date(entry.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }) : '',
+      peso: entry.weight
+    }));
+  }, [user?.metrics?.weightHistory]);
 
   // Formatear fecha de caducidad
   const expirationDate = user?.licenseEndDate ? new Date(user.licenseEndDate).toISOString().split('T')[0] : "No definida";
@@ -45,6 +48,24 @@ const StudentProfile = ({ user }) => {
       
       // Actualizamos el contexto global con la respuesta firme del backend
       updateUser(response.data);
+      
+      // Sincronizar el estado del formulario con los datos guardados
+      const saved = response.data;
+      const lastWeight = saved?.metrics?.weightHistory?.length > 0 
+        ? saved.metrics.weightHistory[saved.metrics.weightHistory.length - 1].weight 
+        : 0;
+      const lastPrs = saved?.metrics?.prsHistory?.length > 0 
+        ? saved.metrics.prsHistory[saved.metrics.prsHistory.length - 1] 
+        : { squat: 0, benchPress: 0, deadlift: 0 };
+      setMetrics({
+        weight: lastWeight,
+        height: saved?.metrics?.height || 0,
+        prs: {
+          squat: lastPrs.squat || 0,
+          benchPress: lastPrs.benchPress || 0,
+          deadlift: lastPrs.deadlift || 0
+        }
+      });
       
       setIsEditing(false);
       showSuccessToast("¡Medidas guardadas con éxito!");
@@ -69,7 +90,7 @@ const StudentProfile = ({ user }) => {
         </div>
         <div>
           <h1 className="text-3xl font-black text-zinc-100">{user.name}</h1>
-          <p className="text-zinc-400 font-medium capitalize">DNI: {user.dni || "No registrado"} • {user.email}</p>
+          <p className="text-zinc-400 font-medium capitalize">DNI: {user.dni || "No registrado"}</p>
         </div>
       </header>
 
@@ -87,7 +108,7 @@ const StudentProfile = ({ user }) => {
               {isEditing ? (
                 <input type="number" className="w-full text-center text-xl font-bold bg-zinc-700 border border-zinc-600 rounded-lg p-1 text-zinc-100" value={metrics.weight} onChange={(e) => setMetrics({...metrics, weight: Number(e.target.value)})} />
               ) : (
-                <span className="text-2xl font-black text-zinc-100">{metrics.weight}</span>
+                <span className="text-2xl font-black text-zinc-100">{currentWeight || '—'}</span>
               )}
             </div>
             
@@ -96,13 +117,13 @@ const StudentProfile = ({ user }) => {
               {isEditing ? (
                 <input type="number" className="w-full text-center text-xl font-bold bg-zinc-700 border border-zinc-600 rounded-lg p-1 text-zinc-100" value={metrics.height} onChange={(e) => setMetrics({...metrics, height: Number(e.target.value)})} />
               ) : (
-                <span className="text-2xl font-black text-zinc-100">{metrics.height}</span>
+                <span className="text-2xl font-black text-zinc-100">{currentHeight || '—'}</span>
               )}
             </div>
 
             <div className="bg-zinc-800 p-4 rounded-2xl border border-zinc-700 text-center col-span-2">
               <span className="block text-xs font-bold text-zinc-500 uppercase mb-1">IMC Actual</span>
-              <span className="text-2xl font-black text-zinc-100">{imc} <span className="text-sm text-zinc-400 font-medium">({imcStatus})</span></span>
+              <span className="text-2xl font-black text-zinc-100">{imc} </span>
             </div>
           </div>
         </div>
@@ -120,7 +141,7 @@ const StudentProfile = ({ user }) => {
                     <span className="text-sm text-zinc-400">kg</span>
                   </div>
                 ) : (
-                  <span className="font-black text-zinc-100">{metrics.prs[lift]} kg</span>
+                  <span className="font-black text-zinc-100">{(currentPrs[lift] || 0)} kg</span>
                 )}
               </div>
             ))}
@@ -135,23 +156,27 @@ const StudentProfile = ({ user }) => {
       )}
 
       {/* GRÁFICO HISTÓRICO RECHARTS */}
-      {!isEditing && chartData.length > 0 && (
+      {!isEditing && (
         <div className="bg-zinc-900 p-6 rounded-3xl border border-zinc-800 shadow-sm">
           <h2 className="text-xl font-bold text-zinc-200 mb-6">Evolución de Peso Corporal</h2>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" />
-                <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 12}} dy={10} />
-                <YAxis domain={['dataMin - 2', 'dataMax + 2']} axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 12}} dx={-10} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #3f3f46', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#18181b' }}
-                  itemStyle={{ color: '#fafafa', fontWeight: 'bold' }}
-                />
-                <Line type="monotone" dataKey="peso" stroke="#fafafa" strokeWidth={3} dot={{ fill: '#fafafa', r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {chartData.length > 0 ? (
+            <div className="h-64 w-full" key={chartData.length}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" />
+                  <XAxis dataKey="fecha" axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 12}} dy={10} />
+                  <YAxis domain={['dataMin - 2', 'dataMax + 2']} axisLine={false} tickLine={false} tick={{fill: '#a1a1aa', fontSize: 12}} dx={-10} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #3f3f46', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#18181b' }}
+                    itemStyle={{ color: '#fafafa', fontWeight: 'bold' }}
+                  />
+                  <Line type="monotone" dataKey="peso" stroke="#fafafa" strokeWidth={3} dot={{ fill: '#fafafa', r: 4 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-zinc-500 text-center py-10">Aún no hay registros de peso. Guardá tu primer registro para ver la evolución.</p>
+          )}
         </div>
       )}
     </div>

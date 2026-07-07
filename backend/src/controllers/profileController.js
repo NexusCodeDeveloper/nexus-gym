@@ -21,8 +21,8 @@ export const updateMetrics = async (req, res) => {
 
     // 3. Modificamos los datos a mano
     user.metrics.height = height;
-    user.metrics.weightHistory.push({ weight });
-    user.metrics.prsHistory.push(prs);
+    user.metrics.weightHistory.push({ weight, date: new Date() });
+    user.metrics.prsHistory.push({ ...prs, date: new Date() });
 
     // 4. Guardamos con .save() (Garantiza que se guarden en MongoDB sin fallar)
     const updatedUser = await user.save();
