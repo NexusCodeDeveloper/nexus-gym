@@ -3,13 +3,16 @@ import HomePage from "./pages/HomePage.jsx";
 import Login from "./pages/login/Login.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./pages/ProtectedRoute.jsx";
+import MainLayout from "./components/layout/MainLayout.jsx";
 import UserManagement from "./pages/admin/UserManagement.jsx";
 import SuperAdminPanel from "./pages/superAdmin/SuperAdminPanel.jsx";
 import LicenseGuard from "./components/license/LicenseGuard.jsx";
 import TeacherPanel from "./pages/TeacherPanel/TeacherPanel.jsx";
-import RoutineList from "./pages/routineList/RoutineList.jsx";
+import ExerciseLibrary from "./pages/admin/ExerciseLibrary/index.jsx";
+import RoutineRouter from "./pages/routineList/RoutineRouter.jsx";
 import RoutineView from "./pages/routineView/RoutineView.jsx";
 import ProfilePage from "./pages/profile/ProfilePage.jsx";
+import ChatPage from "./pages/chat/ChatPage.jsx";
 
 function App() {
   return (
@@ -18,20 +21,18 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/rutinas" element={<RoutineList />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/routineView/:id" element={<RoutineView />} />
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={["profesor", "admin"]} />}>
-            <Route path="/teacherPanel" element={<TeacherPanel />} />
-            <Route path="/editRoutine/:id" element={<TeacherPanel />} />
-          </Route>          
-          <Route element={<ProtectedRoute allowedRoles={["superAdmin"]} />}>
-            <Route path="/nexusControl" element={<SuperAdminPanel />} />
-          </Route>         
-          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-            <Route path="/adminDashboard" element={<LicenseGuard><UserManagement /></LicenseGuard>} />
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/rutinas" element={<RoutineRouter />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/routineView/:id" element={<RoutineView />} />
+              <Route path="/teacherPanel" element={<ProtectedRoute allowedRoles={["profesor", "admin"]}><TeacherPanel /></ProtectedRoute>} />
+              <Route path="/editRoutine/:id" element={<ProtectedRoute allowedRoles={["profesor", "admin"]}><TeacherPanel /></ProtectedRoute>} />
+              <Route path="/nexusControl" element={<ProtectedRoute allowedRoles={["superAdmin"]}><SuperAdminPanel /></ProtectedRoute>} />
+              <Route path="/adminDashboard" element={<ProtectedRoute allowedRoles={["admin"]}><LicenseGuard><UserManagement /></LicenseGuard></ProtectedRoute>} />
+              <Route path="/exercise-library" element={<ProtectedRoute allowedRoles={["admin"]}><ExerciseLibrary /></ProtectedRoute>} />
+            </Route>
+            <Route path="/chat" element={<ChatPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
