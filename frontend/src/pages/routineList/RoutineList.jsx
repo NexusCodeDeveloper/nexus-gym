@@ -46,8 +46,6 @@ const RoutineList = () => {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 p-4 sm:p-8 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"><span>←</span> Volver al Inicio</button>
-
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900 p-6 rounded-3xl border border-zinc-800 shadow-sm">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-zinc-100">
@@ -79,7 +77,7 @@ const RoutineList = () => {
                     <button onClick={() => handleDeleteRoutine(routine._id)} className="py-2.5 px-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold rounded-xl hover:bg-red-500/20 transition-colors">Borrar</button>
                   </div>
                 ) : (
-                  <button onClick={() => navigate(`/routineView/${routine._id}`)} className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-500 transition-colors">Iniciar Entrenamiento</button>
+                  <button onClick={() => navigate(`/routineView/${routine._id}`)} className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-500 transition-colors">Ver rutina</button>
                 )}
               </div>
             </div>

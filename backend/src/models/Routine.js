@@ -4,6 +4,7 @@ const exerciseSchema = new mongoose.Schema({
   name: { type: String, required: true },
   sets: { type: String },
   reps: { type: String },
+  rest: { type: String },
   videoUrl: { type: String }
 });
 
