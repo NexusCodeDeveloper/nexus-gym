@@ -54,7 +54,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] flex flex-col items-center justify-center px-6 relative overflow-hidden font-sans selection:bg-blue-500/30">
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 relative overflow-hidden font-sans selection:bg-blue-500/30">
       
       {/* Background grid sutil */}
       <div
@@ -88,7 +88,7 @@ const Login = () => {
         </div>
 
         {/* Tarjeta Glassmorphism refinada */}
-        <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-8 backdrop-blur-md shadow-2xl shadow-black/50">
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-5 sm:p-8 backdrop-blur-md shadow-2xl shadow-black/50">
           <div className="space-y-7">
             
             {/* Sección del Input */}
@@ -122,7 +122,7 @@ const Login = () => {
                   autoComplete="username"
                   autoFocus
                   className={`
-                    w-full py-4 pl-12 pr-5 bg-[#080c14]/50 border rounded-2xl text-white placeholder-slate-600 
+                    w-full py-4 pl-12 pr-5 bg-zinc-900/50 border rounded-2xl text-white placeholder-zinc-500 
                     text-lg font-mono tracking-[0.15em] transition-all duration-300
                     focus:outline-none focus:bg-white/[0.03]
                     ${error 
