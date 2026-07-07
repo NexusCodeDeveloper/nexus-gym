@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { z } from "zod";
 import { useAuth } from "../../context/AuthContext";
@@ -221,15 +221,23 @@ const UserManagement = () => {
               Control de la base de usuarios del gimnasio
             </p>
           </div>
-          <button
-            onClick={() => {
-              setIsModalOpen(true);
-              setErrors({});
-            }}
-            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
-          >
-            + Nuevo Usuario
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/exercise-library"
+              className="bg-zinc-800 text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors border border-zinc-700"
+            >
+              Video Librería
+            </Link>
+            <button
+              onClick={() => {
+                setIsModalOpen(true);
+                setErrors({});
+              }}
+              className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
+            >
+              + Nuevo Usuario
+            </button>
+          </div>
         </div>
 
         <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm overflow-hidden">
@@ -237,12 +245,12 @@ const UserManagement = () => {
             <table className="w-full text-left text-sm text-zinc-400">
               <thead className="bg-zinc-800/50 border-b border-zinc-700 text-zinc-400 font-medium">
                 <tr>
-                  <th className="px-6 py-4 text-zinc-300">Nombre del Usuario</th>
-                  <th className="px-6 py-4 text-zinc-300">DNI (Usuario/Pass)</th>
-                  <th className="px-6 py-4 text-zinc-300">Rol</th>
-                  <th className="px-6 py-4 text-zinc-300">Vencimiento</th>
-                  <th className="px-6 py-4 text-zinc-300">Estado</th>
-                  <th className="px-6 py-4 text-right text-zinc-300">Acción</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm">Usuario</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm hidden sm:table-cell">Acceso</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm hidden sm:table-cell">Rol</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm hidden sm:table-cell">Vencimiento</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm">Estado</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-zinc-300 text-xs sm:text-sm">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
@@ -270,21 +278,21 @@ const UserManagement = () => {
                       key={user._id}
                       className="hover:bg-zinc-800/50 transition-colors"
                     >
-                      <td className="px-6 py-4 font-medium text-zinc-100">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium text-zinc-100 text-sm sm:text-base">
                         {user.name}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">
                         {user.email ? user.email.split("@")[0] : "Sin DNI"}
                       </td>
-                      <td className="px-6 py-4">{user.role}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">{user.role}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">
                         {user.licenseEndDate
                           ? new Date(user.licenseEndDate)
                               .toISOString()
                               .split("T")[0]
                           : "N/A"}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4">
                         <span
                           className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
                             user.isActive
@@ -295,29 +303,31 @@ const UserManagement = () => {
                           {user.isActive ? "Activo" : "Suspendido"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button
-                          onClick={() => handleEditClick(user)}
-                          className="text-zinc-400 hover:text-zinc-100 font-medium px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleSuspendUser(user._id, user.isActive)}
-                          className={`font-medium px-2 py-1 text-xs rounded-md transition-colors ${
-                            user.isActive
-                              ? "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
-                              : "text-blue-400 bg-blue-500/10 hover:bg-blue-500/20"
-                          }`}
-                        >
-                          {user.isActive ? "Suspender" : "Activar"}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="text-red-500 hover:text-red-400 font-medium px-2 py-1 text-xs bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors"
-                        >
-                          Eliminar
-                        </button>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEditClick(user)}
+                            className="text-zinc-400 hover:text-zinc-100 font-medium px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleSuspendUser(user._id, user.isActive)}
+                            className={`font-medium px-2 py-1 text-xs rounded-md transition-colors ${
+                              user.isActive
+                                ? "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                                : "text-blue-400 bg-blue-500/10 hover:bg-blue-500/20"
+                            }`}
+                          >
+                            {user.isActive ? "Suspender" : "Activar"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user._id)}
+                            className="text-red-500 hover:text-red-400 font-medium px-2 py-1 text-xs bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

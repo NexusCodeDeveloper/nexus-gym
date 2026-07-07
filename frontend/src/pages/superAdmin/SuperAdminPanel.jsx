@@ -234,12 +234,12 @@ const SuperAdminPanel = () => {
             <table className="w-full text-left text-sm text-zinc-400">
               <thead className="bg-zinc-800/50 border-b border-zinc-700 text-zinc-400 font-medium">
                 <tr>
-                  <th className="px-6 py-4 text-zinc-300">Gimnasio / Cliente</th>
-                  <th className="px-6 py-4">DNI (Acceso)</th>
-                  <th className="px-6 py-4">Inicio Licencia</th>
-                  <th className="px-6 py-4">Fin Licencia</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4 text-right">Acciones</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm">Cliente</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">Acceso</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">Inicio</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">Fin</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">Estado</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs sm:text-sm">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
@@ -250,22 +250,24 @@ const SuperAdminPanel = () => {
                 ) : (
                   admins.map((admin) => (
                     <tr key={admin._id} className="hover:bg-zinc-800/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-zinc-100">{admin.name}</td>
-                      <td className="px-6 py-4">{admin.dni}</td>
-                      <td className="px-6 py-4">{formatDate(admin.licenseStartDate)}</td>
-                      <td className="px-6 py-4 font-medium">{formatDate(admin.licenseEndDate)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${admin.isActive ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium text-zinc-100 text-sm sm:text-base">{admin.name}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">{admin.dni}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">{formatDate(admin.licenseStartDate)}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell font-medium">{formatDate(admin.licenseEndDate)}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border ${admin.isActive ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                           {admin.isActive ? 'Activo' : 'Suspendido'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button onClick={() => openEditModal(admin)} className="text-zinc-400 hover:text-zinc-100 font-medium px-2 py-1 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors">Editar</button>
-                        <button onClick={() => handleRenewLicense(admin._id)} className="text-green-400 hover:text-green-300 font-medium px-2 py-1 text-xs bg-green-500/10 hover:bg-green-500/20 rounded-md transition-colors">Renovar x mes</button>
-                        <button onClick={() => handleToggleAccess(admin._id)} className={`font-medium px-2 py-1 text-xs rounded-md transition-colors ${admin.isActive ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'}`}>
-                          {admin.isActive ? 'Suspender' : 'Activar'}
-                        </button>
-                        <button onClick={() => handleDeleteAdmin(admin._id)} className="text-red-500 hover:text-red-400 font-medium px-2 py-1 text-xs bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors">Eliminar</button>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
+                        <div className="flex flex-wrap justify-end gap-1">
+                          <button onClick={() => openEditModal(admin)} className="text-zinc-400 hover:text-zinc-100 font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors">Editar</button>
+                          <button onClick={() => handleRenewLicense(admin._id)} className="text-green-400 hover:text-green-300 font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-green-500/10 hover:bg-green-500/20 rounded-md transition-colors">Renovar</button>
+                          <button onClick={() => handleToggleAccess(admin._id)} className={`font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded-md transition-colors ${admin.isActive ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'}`}>
+                            {admin.isActive ? 'Suspender' : 'Activar'}
+                          </button>
+                          <button onClick={() => handleDeleteAdmin(admin._id)} className="text-red-500 hover:text-red-400 font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors">Eliminar</button>
+                        </div>
                       </td>
                     </tr>
                   ))
