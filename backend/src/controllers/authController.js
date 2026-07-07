@@ -53,6 +53,22 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Email o contraseña incorrectos" });
     }
 
+    if (userFound.role !== 'superAdmin') {
+      if (!userFound.isActive) {
+        return res.status(403).json({ message: "Tu cuenta ha sido suspendida. Comunicate con el administrador." });
+      }
+
+      if (userFound.licenseEndDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(userFound.licenseEndDate);
+        end.setHours(0, 0, 0, 0);
+        if (end < today) {
+          return res.status(403).json({ message: "Tu licencia ha vencido. Comunicate con el administrador para renovarla." });
+        }
+      }
+    }
+
     const exactRole = userFound.role;
 
     const token = await createAccessToken({
@@ -90,15 +106,34 @@ export const profile = async (req, res) => {
       return res.status(400).json({ message: "Usuario no encontrado" });
     }
 
+    if (userFound.role !== 'superAdmin') {
+      if (!userFound.isActive) {
+        res.cookie("token", "", { expires: new Date(0) });
+        return res.status(403).json({ message: "Cuenta suspendida" });
+      }
+
+      if (userFound.licenseEndDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(userFound.licenseEndDate);
+        end.setHours(0, 0, 0, 0);
+        if (end < today) {
+          res.cookie("token", "", { expires: new Date(0) });
+          return res.status(403).json({ message: "Licencia vencida" });
+        }
+      }
+    }
+
     return res.json({
       id: userFound._id,
       name: userFound.name,
+      dni: userFound.dni,
       email: userFound.email,
       role: userFound.role,
       isActive: userFound.isActive,
       licenseStartDate: userFound.licenseStartDate,
       licenseEndDate: userFound.licenseEndDate,
-      metrics: userFound.metrics, // 🔥 SOLUCIÓN: El eslabón perdido agregado acá
+      metrics: userFound.metrics,
     });
   } catch (error) {
     console.error("Error en profile", error.message);
@@ -116,6 +151,22 @@ export const verifyDni = async (req, res) => {
     
     if (!userFound) {
       return res.status(404).json({ message: "El DNI ingresado no tiene acceso. Consulte en recepcion" });
+    }
+
+    if (userFound.role !== 'superAdmin') {
+      if (!userFound.isActive) {
+        return res.status(403).json({ message: "Tu cuenta ha sido suspendida. Comunicate con el administrador." });
+      }
+
+      if (userFound.licenseEndDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(userFound.licenseEndDate);
+        end.setHours(0, 0, 0, 0);
+        if (end < today) {
+          return res.status(403).json({ message: "Tu licencia ha vencido. Comunicate con el administrador para renovarla." });
+        }
+      }
     }
 
     const exactRole = userFound.role;

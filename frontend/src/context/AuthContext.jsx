@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import axios from "axios";
-import Swal from "sweetalert2";
+import { showConfirmDialog, showErrorToast } from "../utils/swal";
 
 export const AuthContext = createContext();
 
@@ -22,35 +22,26 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
   };
 
-  const logout = () => {
-    Swal.fire({
+  const logout = async () => {
+    const isConfirmed = await showConfirmDialog({
       title: '¿Quieres cerrar la sesión?',
       text: "Serás redirigido a la página de inicio de sesión.",
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, cerrar sesión',
-      cancelButtonText: 'No, cancelar'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await axios.post("http://localhost:4000/api/auth/logout", {}, { 
-            withCredentials: true 
-          });
-          setUser(null);
-          setIsAuthenticated(false);
-          window.location.href = '/login';
-        } catch (error) {
-          console.error("Error al cerrar sesión", error);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Hubo un problema al cerrar sesión. Inténtalo de nuevo.',
-          });
-        }
-      }
     });
+
+    if (isConfirmed) {
+      try {
+        await axios.post("http://localhost:4000/api/auth/logout", {}, { 
+          withCredentials: true 
+        });
+        setUser(null);
+        setIsAuthenticated(false);
+        window.location.href = '/login';
+      } catch (error) {
+        console.error("Error al cerrar sesión", error);
+        showErrorToast('Hubo un problema al cerrar sesión. Inténtalo de nuevo.');
+      }
+    }
   };
 
   // 🔥 NUEVA FUNCIÓN: Permite actualizar el estado global del usuario en vivo

@@ -74,9 +74,9 @@ const SwipeButton = ({ onSwipe, isLoading, disabled, text = "Desliza para ingres
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full h-14 flex items-center justify-center rounded-xl overflow-hidden select-none transition-colors duration-300 ${disabled ? 'bg-zinc-200' : 'bg-zinc-100'}`}
+      className={`relative w-full h-14 flex items-center justify-center rounded-xl overflow-hidden select-none transition-colors duration-300 ${disabled ? 'bg-zinc-800/50' : 'bg-zinc-800'}`}
     >
-      <span className={`absolute text-sm font-medium transition-opacity duration-300 ${disabled ? 'text-zinc-400' : 'text-zinc-500'} ${isSuccess || isDragging ? 'opacity-0' : 'opacity-100'}`}>
+      <span className={`absolute text-sm font-medium transition-opacity duration-300 ${disabled ? 'text-zinc-600' : 'text-zinc-400'} ${isSuccess || isDragging ? 'opacity-0' : 'opacity-100'}`}>
         {text}
       </span>
 
@@ -88,7 +88,7 @@ const SwipeButton = ({ onSwipe, isLoading, disabled, text = "Desliza para ingres
           transform: `translateX(${position}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out'
         }}
-        className={`absolute left-1 h-12 w-16 rounded-lg flex items-center justify-center z-10 shadow-sm ${disabled ? 'bg-zinc-300 cursor-not-allowed' : 'bg-zinc-900 cursor-grab active:cursor-grabbing hover:bg-zinc-800'}`}
+        className={`absolute left-1 h-12 w-16 rounded-lg flex items-center justify-center z-10 shadow-lg shadow-blue-500/20 ${disabled ? 'bg-zinc-700 cursor-not-allowed' : 'bg-blue-600 cursor-grab active:cursor-grabbing hover:bg-blue-500'}`}
       >
         {isLoading ? (
           <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@ const SwipeButton = ({ onSwipe, isLoading, disabled, text = "Desliza para ingres
 
       <div 
         style={{ width: `${position + 32}px`, transition: isDragging ? 'none' : 'width 0.3s ease-out' }}
-        className="absolute left-0 h-full bg-zinc-200/50 rounded-l-xl"
+        className="absolute left-0 h-full bg-blue-500/20 rounded-l-xl"
       />
     </div>
   );

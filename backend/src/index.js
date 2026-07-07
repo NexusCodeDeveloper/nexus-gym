@@ -9,6 +9,9 @@ import cookieParser from "cookie-parser";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js"; 
+import exerciseMediaRoutes from "./routes/exerciseMediaRoutes.js";
+import routineProgressRoutes from "./routes/routineProgressRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -36,6 +39,9 @@ app.use("/api/routines", routineRoutes);
 app.use("/api/super-admin", superAdminRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/profile", profileRoutes); 
+app.use("/api/exercise-media", exerciseMediaRoutes);
+app.use("/api/routine-progress", routineProgressRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor backend corriendo en http://localhost:${port}`);
