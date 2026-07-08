@@ -10,7 +10,9 @@ function ProtectedRoute({ allowedRoles, children }) {
     </div>
   );
 
-  if (!loading && !isAuthenticated) return <Navigate to="/login" replace />;
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (user?.role !== 'superAdmin' && user) {
     const today = new Date();
@@ -26,7 +28,11 @@ function ProtectedRoute({ allowedRoles, children }) {
     }
 
     if (isSuspended || isExpired) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/login" replace state={{
+        reason: isSuspended
+          ? 'Tu cuenta ha sido suspendida. Comunicate con el administrador.'
+          : 'Tu licencia ha vencido. Comunicate con el administrador para renovarla.'
+      }} />;
     }
   }
 

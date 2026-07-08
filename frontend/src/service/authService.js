@@ -11,6 +11,9 @@ export const verifyDni = async (dni) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Error al comunicarse con el servidor");
+    const message = error.response?.data?.message || "Error al comunicarse con el servidor";
+    const err = new Error(message);
+    err.response = error.response;
+    throw err;
   }
 };

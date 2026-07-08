@@ -1,15 +1,32 @@
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-const navItems = [
+const getNavItems = (chatDisabled) => [
   { path: '/rutinas', activePaths: ['/rutinas', '/routineView'], label: 'Rutinas', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z' },
   { path: '/', label: 'Inicio', icon: 'M12 3L4 9v12h5v-7h6v7h5V9z' },
   { path: '/profile', label: 'Perfil', icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
-  { path: '/chat', label: 'Chat IA', icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z' },
+  { path: '/chat', label: 'Chat IA', icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z', disabled: chatDisabled },
 ];
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [chatDisabled, setChatDisabled] = useState(false);
+
+  useEffect(() => {
+    const checkChatStatus = async () => {
+      try {
+        const res = await axios.get('http://localhost:4000/api/chat/status', { withCredentials: true });
+        setChatDisabled(!res.data.enabled);
+      } catch {
+        setChatDisabled(true);
+      }
+    };
+    checkChatStatus();
+  }, []);
+
+  const navItems = getNavItems(chatDisabled);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-900/90 backdrop-blur-xl border-t border-zinc-800">

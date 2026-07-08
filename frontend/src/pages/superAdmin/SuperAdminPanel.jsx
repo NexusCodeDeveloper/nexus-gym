@@ -58,10 +58,13 @@ const editSchema = z.object({
 });
 
 const SuperAdminPanel = () => {
-  const navigate = useNavigate(); // Inicializamos el hook
+  const navigate = useNavigate();
   const [admins, setAdmins] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [openActionsId, setOpenActionsId] = useState(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   
+  const [searchDni, setSearchDni] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
@@ -111,6 +114,16 @@ const SuperAdminPanel = () => {
       fetchAdmins(); 
     } catch (error) {
       showErrorToast(error.response?.data?.message || "Ocurrió un error al crear el cliente");
+    }
+  };
+
+  const handleToggleChatbot = async (id) => {
+    try {
+      const res = await axios.patch(`http://localhost:4000/api/super-admin/admins/${id}/chatbot-toggle`, {}, { withCredentials: true });
+      showSuccessToast(res.data.message);
+      setAdmins(admins.map(a => a._id === id ? { ...a, chatbotEnabled: res.data.chatbotEnabled } : a));
+    } catch (error) {
+      showErrorToast('Error al cambiar estado del chatbot');
     }
   };
 
@@ -213,7 +226,7 @@ const SuperAdminPanel = () => {
 
         <button 
           onClick={() => navigate('/')} 
-          className="mb-6 flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+          className="mb-6 flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <span>←</span> Volver al Inicio
         </button>
@@ -229,45 +242,71 @@ const SuperAdminPanel = () => {
           </button>
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm overflow-hidden">
+        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm">
+          <div className="p-3 sm:p-4 border-b border-zinc-800">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Buscar por DNI..."
+              maxLength={8}
+              value={searchDni}
+              onChange={(e) => setSearchDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+              className="w-full sm:w-64 p-2 bg-zinc-800 border border-zinc-700 rounded-xl text-xs text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-zinc-400">
               <thead className="bg-zinc-800/50 border-b border-zinc-700 text-zinc-400 font-medium">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm">Cliente</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">Acceso</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">Inicio</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">Fin</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">Acceso</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">Inicio</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">Fin</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">Estado</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">Chatbot</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs sm:text-sm">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
                 {isLoading ? (
-                  <tr><td colSpan="6" className="px-6 py-8 text-center text-zinc-400">Cargando clientes...</td></tr>
+                  <tr><td colSpan="7" className="px-6 py-8 text-center text-zinc-400">Cargando clientes...</td></tr>
                 ) : admins.length === 0 ? (
-                  <tr><td colSpan="6" className="px-6 py-8 text-center text-zinc-400">No hay gimnasios registrados.</td></tr>
+                  <tr><td colSpan="7" className="px-6 py-8 text-center text-zinc-400">No hay gimnasios registrados.</td></tr>
                 ) : (
-                  admins.map((admin) => (
+                  admins.filter(admin => admin.dni && admin.dni.includes(searchDni)).map((admin) => (
                     <tr key={admin._id} className="hover:bg-zinc-800/50 transition-colors">
                       <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium text-zinc-100 text-sm sm:text-base">{admin.name}</td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">{admin.dni}</td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">{formatDate(admin.licenseStartDate)}</td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell font-medium">{formatDate(admin.licenseEndDate)}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">{admin.dni}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">{formatDate(admin.licenseStartDate)}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell font-medium">{formatDate(admin.licenseEndDate)}</td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4">
                         <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border ${admin.isActive ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                           {admin.isActive ? 'Activo' : 'Suspendido'}
                         </span>
                       </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4">
+                        <button
+                          onClick={() => handleToggleChatbot(admin._id)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium border transition-colors ${
+                            admin.chatbotEnabled !== false
+                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20'
+                              : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {admin.chatbotEnabled !== false ? 'Habilitado' : 'Deshabilitado'}
+                        </button>
+                      </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
-                        <div className="flex flex-wrap justify-end gap-1">
-                          <button onClick={() => openEditModal(admin)} className="text-zinc-400 hover:text-zinc-100 font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors">Editar</button>
-                          <button onClick={() => handleRenewLicense(admin._id)} className="text-green-400 hover:text-green-300 font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-green-500/10 hover:bg-green-500/20 rounded-md transition-colors">Renovar</button>
-                          <button onClick={() => handleToggleAccess(admin._id)} className={`font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs rounded-md transition-colors ${admin.isActive ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'}`}>
-                            {admin.isActive ? 'Suspender' : 'Activar'}
-                          </button>
-                          <button onClick={() => handleDeleteAdmin(admin._id)} className="text-red-500 hover:text-red-400 font-medium px-1.5 sm:px-2 py-1 text-[10px] sm:text-xs bg-red-500/10 hover:bg-red-500/20 rounded-md transition-colors">Eliminar</button>
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+                            setOpenActionsId(openActionsId === admin._id ? null : admin._id);
+                          }}
+                          className="text-zinc-400 hover:text-zinc-100 font-medium px-2.5 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                        >
+                          Acciones ▾
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -358,6 +397,31 @@ const SuperAdminPanel = () => {
         )}
 
       </div>
+
+      {openActionsId && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpenActionsId(null)} />
+          <div
+            className="fixed z-50 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl py-1.5 w-36"
+            style={{ top: menuPos.top, right: menuPos.right }}
+          >
+            {(() => {
+              const admin = admins.find(a => a._id === openActionsId);
+              if (!admin) return null;
+              return (
+                <>
+                  <button onClick={() => { openEditModal(admin); setOpenActionsId(null); }} className="w-full text-left px-4 py-2 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors">Editar</button>
+                  <button onClick={() => { handleRenewLicense(admin._id); setOpenActionsId(null); }} className="w-full text-left px-4 py-2 text-xs text-green-400 hover:bg-zinc-700 transition-colors">Renovar</button>
+                  <button onClick={() => { handleToggleAccess(admin._id); setOpenActionsId(null); }} className={`w-full text-left px-4 py-2 text-xs transition-colors ${admin.isActive ? 'text-amber-400 hover:bg-zinc-700' : 'text-blue-400 hover:bg-zinc-700'}`}>
+                    {admin.isActive ? 'Suspender' : 'Activar'}
+                  </button>
+                  <button onClick={() => { handleDeleteAdmin(admin._id); setOpenActionsId(null); }} className="w-full text-left px-4 py-2 text-xs text-red-400 hover:bg-zinc-700 transition-colors">Eliminar</button>
+                </>
+              );
+            })()}
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -68,13 +68,17 @@ const saveMessage = async (userId, role, content) => {
 };
 
 const deleteLastUserMessage = async (userId) => {
-  const memory = await ChatMemory.findOne({ userId });
-  if (!memory?.messages?.length) return;
-  const idx = [...memory.messages].reverse().findIndex(m => m.role === 'user');
-  if (idx === -1) return;
-  const realIdx = memory.messages.length - 1 - idx;
-  memory.messages.splice(realIdx, 1);
-  await memory.save();
+  try {
+    const memory = await ChatMemory.findOne({ userId });
+    if (!memory?.messages?.length) return;
+    const idx = [...memory.messages].reverse().findIndex(m => m.role === 'user');
+    if (idx === -1) return;
+    const realIdx = memory.messages.length - 1 - idx;
+    memory.messages.splice(realIdx, 1);
+    await memory.save();
+  } catch (error) {
+    console.error('Error deleting last user message:', error);
+  }
 };
 
 export const history = async (req, res) => {
@@ -98,12 +102,27 @@ export const clearHistory = async (req, res) => {
   }
 };
 
+export const chatStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('role createdBy');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    const gymId = user.role === 'admin' ? user._id : user.createdBy;
+    let enabled = true;
+    if (gymId) {
+      const gymAdmin = await User.findById(gymId).select('chatbotEnabled');
+      enabled = gymAdmin ? gymAdmin.chatbotEnabled !== false : true;
+    }
+    res.json({ enabled });
+  } catch (error) {
+    console.error('Chat status error:', error);
+    res.status(500).json({ message: 'Error al obtener estado del chat' });
+  }
+};
+
 export const chat = async (req, res) => {
   try {
     const { message } = req.body;
-    if (!message?.trim()) {
-      return res.status(400).json({ message: 'El mensaje no puede estar vacío' });
-    }
 
     if (!process.env.GROQ_API_KEY) {
       return res.status(503).json({ message: 'El asistente no está configurado aún. Contactá al administrador.' });
@@ -112,6 +131,15 @@ export const chat = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Verificar si el chatbot está habilitado para el gimnasio
+    const gymId = user.role === 'admin' ? user._id : user.createdBy;
+    if (gymId) {
+      const gymAdmin = await User.findById(gymId).select('chatbotEnabled');
+      if (gymAdmin && !gymAdmin.chatbotEnabled) {
+        return res.status(403).json({ message: 'El chatbot está deshabilitado para tu gimnasio. Consultá con tu administrador.' });
+      }
     }
 
     const routines = user.role === 'alumno'
@@ -126,21 +154,21 @@ export const chat = async (req, res) => {
     const systemPrompt = buildSystemPrompt(user, routines, studentsCount);
     const dbHistory = await loadHistory(req.user.id);
 
-    // ── Soporte flow: detectar error, pedir detalle, mostrar wsp ──
+    // ── Support flow: detect error, ask detail, show wsp ──
     const isErrorMsg = /error|problema|falla|no (funciona|carga|anda|abre|entra|anda|marcha)|tira.*error|bug|soporte|reporte/i.test(message);
-    const recentBot = dbHistory.filter(m => m.role === 'assistant').slice(-4).map(m => m.content).join(' ');
-    const askedError = /qué error|describime/i.test(recentBot);
-    const userGaveError = /error.*:|código.*:|me aparece|dice.*error|\d{3,4}/i.test((dbHistory.filter(m => m.role === 'user').slice(-1).map(m => m.content).join(' ')) + ' ' + message);
+    const isResolvedMsg = /ya (lo )?(solucione|arregle|resolvi)|no hay (más )?(error|problema)|ya (anda|funciona)|gracias.*(ayuda|solucion)/i.test(message);
+    const lastBotMsg = dbHistory.filter(m => m.role === 'assistant').slice(-1).map(m => m.content).join(' ');
+    const askedError = /qué error|describime/i.test(lastBotMsg);
+    const userGaveError = /error.*:|código.*:|me aparece|dice.*error|\d{3,4}/i.test(message);
 
-    if (isErrorMsg || askedError) {
+    if (isErrorMsg && !isResolvedMsg) {
       let reply = '';
       if (!askedError) {
         reply = '¿Qué error te aparece? Describime exactamente lo que ves en pantalla.';
       } else if (!userGaveError) {
         reply = '¿Qué error te aparece? Describime exactamente lo que ves en pantalla.';
       } else {
-        const prevUser = dbHistory.filter(m => m.role === 'user').slice(-1).map(m => m.content).join(' ');
-        const errorDetail = (prevUser + ' ' + message).trim();
+        const errorDetail = message.trim();
         const gymName = user.name;
         reply = `📝 *Detalle del error:* ${errorDetail}\n🏪 *Gimnasio:* ${gymName}`;
       }
@@ -177,7 +205,7 @@ export const chat = async (req, res) => {
         tool_choice: 'auto',
         stream: false,
         temperature: 0.7,
-        max_tokens: 256,
+        max_tokens: 1024,
       }),
     });
 
@@ -198,7 +226,7 @@ export const chat = async (req, res) => {
       if (fallbackContent) {
         let cleaned = sanitize(fallbackContent);
 
-        // Si fallback solo contiene function tags, extraer el JSON interno
+        // If fallback only contains function tags, extract the JSON inside
         if (!cleaned) {
           const match = fallbackContent.match(/<function=\w+>([\s\S]*?)<\/function>/);
           if (match) {
@@ -281,7 +309,7 @@ export const chat = async (req, res) => {
           messages: groqMessages,
           stream: true,
           temperature: 0.7,
-          max_tokens: 512,
+          max_tokens: 2048,
         }),
       });
 
@@ -318,8 +346,12 @@ export const chat = async (req, res) => {
     if (!res.headersSent) {
       return res.status(500).json({ message: 'Error interno del servidor' });
     }
-    res.write(`data: ${JSON.stringify({ error: 'Error interno' })}\n\n`);
-    res.write('data: [DONE]\n\n');
-    res.end();
+    try {
+      res.write(`data: ${JSON.stringify({ error: 'Error interno' })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } catch (e) {
+      // Connection may already be closed
+    }
   }
 };

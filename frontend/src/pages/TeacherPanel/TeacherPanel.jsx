@@ -21,7 +21,7 @@ const VideoPickerModal = ({ onSelect, onClose, videos }) => {
           placeholder="Buscar ejercicio..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mb-4 p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mb-4 p-2 bg-zinc-800 border border-zinc-700 rounded-xl text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <div className="flex-1 overflow-y-auto space-y-3">
           {filtered.length === 0 ? (
@@ -60,15 +60,33 @@ const TeacherPanel = () => {
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(isEditing);
+  const [checkedIn, setCheckedIn] = useState(false);
   const [showVideoPicker, setShowVideoPicker] = useState(null);
   const [libraryVideos, setLibraryVideos] = useState([]);
   
   const [routine, setRoutine] = useState({
     title: '',
     level: 'Principiante',
-    studentId: '',
+    students: [],
+    assignedToAll: false,
     days: [{ dayName: 'Lunes', exercises: [{ name: '', sets: '', reps: '', rest: '', videoUrl: '' }] }]
   });
+
+  useEffect(() => {
+    axios.get('http://localhost:4000/api/attendance/my', { withCredentials: true })
+      .then(res => setCheckedIn(res.data.checkedInToday))
+      .catch(() => {});
+  }, []);
+
+  const handleCheckin = async () => {
+    try {
+      await axios.post('http://localhost:4000/api/attendance/checkin', {}, { withCredentials: true });
+      setCheckedIn(true);
+      showSuccessToast('Asistencia marcada correctamente');
+    } catch (error) {
+      showErrorToast(error.response?.data?.message || 'Error al marcar asistencia');
+    }
+  };
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -126,9 +144,16 @@ const TeacherPanel = () => {
     setRoutine({ ...routine, days: newDays });
   };
 
+  const toggleStudent = (id) => {
+    setRoutine(prev => ({
+      ...prev,
+      students: prev.students.includes(id) ? prev.students.filter(s => s !== id) : [...prev.students, id]
+    }));
+  };
+
   const handleSaveRoutine = async () => {
     if (!routine.title) return showErrorToast("Por favor, ponle un título a la rutina");
-    if (!routine.studentId) return showErrorToast("Por favor, selecciona un alumno");
+    if (!routine.assignedToAll && routine.students.length === 0) return showErrorToast("Seleccioná al menos un alumno o marcá 'Para todos'");
 
     const url = isEditing ? `http://localhost:4000/api/routines/${id}` : "http://localhost:4000/api/routines/create";
     const method = isEditing ? "PUT" : "POST";
@@ -157,23 +182,75 @@ const TeacherPanel = () => {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <button onClick={() => navigate(-1)} className="mb-6 text-sm font-medium text-zinc-400 hover:text-zinc-200 flex items-center gap-2">
-          <span>←</span> Volver
-        </button>
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={() => navigate(-1)} className="text-sm font-medium text-zinc-400 hover:text-zinc-200 flex items-center gap-2">
+            <span>←</span> Volver
+          </button>
+          {checkedIn ? (
+            <span className="text-emerald-400 text-sm font-bold flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              Asistencia marcada hoy
+            </span>
+          ) : (
+            <button onClick={handleCheckin} className="text-sm font-bold text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-lg hover:bg-blue-500/20 transition-all flex items-center gap-1.5">
+              📅 Marcar Asistencia
+            </button>
+          )}
+        </div>
         <h1 className="text-3xl font-bold tracking-tight text-zinc-100 mb-8">{isEditing ? 'Editar Rutina' : 'Crear Nueva Rutina'}</h1>
         
         {/* INFO GENERAL */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-zinc-900 p-6 rounded-2xl border border-zinc-800">
-          <select value={routine.studentId} onChange={(e) => setRoutine({...routine, studentId: e.target.value})} className="p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <option value="">Seleccionar alumno...</option>
-            {alumnos.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
+        <div className="mb-8 bg-zinc-900 p-6 rounded-2xl border border-zinc-800 space-y-4">
+          <div className="flex items-center gap-2 bg-zinc-800/50 p-1 rounded-xl w-fit">
+            <button
+              type="button"
+              onClick={() => setRoutine({ ...routine, assignedToAll: true, students: [] })}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${routine.assignedToAll ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >
+              Para todos los alumnos
+            </button>
+            <button
+              type="button"
+              onClick={() => setRoutine({ ...routine, assignedToAll: false })}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${!routine.assignedToAll ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >
+              Seleccionar alumnos
+            </button>
+          </div>
+
+          {routine.assignedToAll ? (
+            <p className="text-xs text-zinc-500">Esta rutina se asignará a <span className="text-zinc-300 font-semibold">todos los alumnos</span> del gimnasio.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {alumnos.length === 0 ? (
+                <p className="text-xs text-zinc-500">No hay alumnos disponibles.</p>
+              ) : (
+                alumnos.map(a => (
+                  <button
+                    key={a._id}
+                    type="button"
+                    onClick={() => toggleStudent(a._id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      routine.students.includes(a._id)
+                        ? 'bg-blue-600/20 border-blue-500/40 text-blue-300'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                    }`}
+                  >
+                    {routine.students.includes(a._id) ? '✓ ' : ''}{a.name}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input className="p-2 bg-zinc-800 border border-zinc-700 rounded-xl text-xs text-zinc-300 placeholder-zinc-500 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Título de la rutina" value={routine.title} onChange={(e) => setRoutine({...routine, title: e.target.value})} />
+            <select value={routine.level} onChange={(e) => setRoutine({...routine, level: e.target.value})} className="p-2 bg-zinc-800 border border-zinc-700 rounded-xl text-xs text-zinc-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="Principiante" className="text-xs">Principiante</option>
+            <option value="Intermedio" className="text-xs">Intermedio</option>
+            <option value="Avanzado" className="text-xs">Avanzado</option>
           </select>
-          <input className="p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 placeholder-zinc-500 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Título de la rutina (Ej: Semana 1 - Pecho)" value={routine.title} onChange={(e) => setRoutine({...routine, title: e.target.value})} />
-          <select value={routine.level} onChange={(e) => setRoutine({...routine, level: e.target.value})} className="p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <option value="Principiante">Principiante</option>
-            <option value="Intermedio">Intermedio</option>
-            <option value="Avanzado">Avanzado</option>
-          </select>
+        </div>
         </div>
 
         {/* NAVBAR DÍAS */}
@@ -193,14 +270,14 @@ const TeacherPanel = () => {
               <div key={eIndex} className="bg-zinc-800 p-3 sm:p-4 mb-4 rounded-xl border border-zinc-700 relative">
               <button onClick={() => removeExercise(eIndex)} className="absolute top-2 right-2 sm:top-3 sm:right-3 text-red-500 hover:text-red-400 font-bold text-base sm:text-lg">✕</button>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <input placeholder="Nombre del Ejercicio" value={ex.name} onChange={(e) => updateExercise(eIndex, 'name', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 col-span-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" />
-                <input placeholder="Series" value={ex.sets} onChange={(e) => updateExercise(eIndex, 'sets', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" />
-                <input placeholder="Reps" value={ex.reps} onChange={(e) => updateExercise(eIndex, 'reps', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" />
-                <input placeholder="Descanso" value={ex.rest} onChange={(e) => updateExercise(eIndex, 'rest', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" />
+                <input placeholder="Nombre del Ejercicio" value={ex.name} onChange={(e) => updateExercise(eIndex, 'name', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 col-span-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" />
+                <input placeholder="Series" value={ex.sets} onChange={(e) => updateExercise(eIndex, 'sets', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" />
+                <input placeholder="Reps" value={ex.reps} onChange={(e) => updateExercise(eIndex, 'reps', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" />
+                <input placeholder="Descanso" value={ex.rest} onChange={(e) => updateExercise(eIndex, 'rest', e.target.value)} className="p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" />
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
                 <div className="flex items-center gap-2 flex-1">
-                  <input placeholder="URL del video (o seleccioná de la librería)" value={ex.videoUrl || ''} onChange={(e) => updateExercise(eIndex, 'videoUrl', e.target.value)} className="flex-1 p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 placeholder-zinc-500 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-w-0" />
+                  <input placeholder="URL del video" value={ex.videoUrl || ''} onChange={(e) => updateExercise(eIndex, 'videoUrl', e.target.value)} className="flex-1 p-2 bg-zinc-700 border border-zinc-600 rounded text-zinc-200 placeholder-zinc-500 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none min-w-0" />
                   <button
                     type="button"
                     onClick={() => setShowVideoPicker(eIndex)}
