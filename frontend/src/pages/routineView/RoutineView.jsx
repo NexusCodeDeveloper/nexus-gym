@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { showSuccessToast, showErrorToast } from '../../utils/swal';
 
 const RoutineView = () => {
   const { id } = useParams();
@@ -12,6 +13,11 @@ const RoutineView = () => {
   const [completedExercises, setCompletedExercises] = useState({});
   const [showCelebration, setShowCelebration] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [sessionActive, setSessionActive] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     const fetchRoutine = async () => {
@@ -52,6 +58,69 @@ const RoutineView = () => {
     };
     if (id) fetchProgress();
   }, [id]);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await axios.get('http://localhost:4000/api/workout/active', { withCredentials: true });
+        if (res.data.data) {
+          setSessionActive(true);
+          const start = new Date(res.data.data.startTime);
+          setElapsed(Math.floor((Date.now() - start) / 1000));
+        }
+      } catch (err) {
+        // ignore
+      } finally {
+        setSessionLoading(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  useEffect(() => {
+    if (sessionActive) {
+      intervalRef.current = setInterval(() => {
+        setElapsed(prev => prev + 1);
+      }, 1000);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      setElapsed(0);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [sessionActive]);
+
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const startWorkout = async () => {
+    try {
+      await axios.post('http://localhost:4000/api/workout/start', { routineId: id }, { withCredentials: true });
+      setSessionActive(true);
+      setElapsed(0);
+      showSuccessToast('Entrenamiento iniciado');
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Error al iniciar');
+    }
+  };
+
+  const stopWorkout = async () => {
+    try {
+      const res = await axios.patch('http://localhost:4000/api/workout/stop', {}, { withCredentials: true });
+      setSessionActive(false);
+      const mins = res.data.data.duration;
+      showSuccessToast(`Entrenamiento finalizado — ${mins} minutos`);
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Error al finalizar');
+    }
+  };
 
   const saveDayProgress = useCallback(async (dayIndex, exerciseMap) => {
     setSaving(true);
@@ -138,6 +207,34 @@ const RoutineView = () => {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* WORKOUT TIMER */}
+        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⏱️</span>
+            <div>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                {sessionActive ? 'Entrenando' : 'Entrenamiento'}
+              </p>
+              {sessionActive ? (
+                <p className="text-xl font-black text-white tabular-nums mt-0.5">{formatTime(elapsed)}</p>
+              ) : (
+                <p className="text-xs text-zinc-500 mt-0.5">Registrá el tiempo de tu entrenamiento</p>
+              )}
+            </div>
+          </div>
+          {!sessionLoading && (
+            sessionActive ? (
+              <button onClick={stopWorkout} className="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 px-4 py-2 rounded-xl text-xs font-bold transition-colors">
+                Finalizar
+              </button>
+            ) : (
+              <button onClick={startWorkout} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 px-4 py-2 rounded-xl text-xs font-bold transition-colors">
+                Iniciar
+              </button>
+            )
+          )}
         </div>
 
         {/* DAY SELECTOR + PROGRESS */}
