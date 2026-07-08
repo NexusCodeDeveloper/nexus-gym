@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import StatCard from '../components/StatCard/index.jsx';
-import QuickAction from '../components/QuickAction/index.jsx';
+import StatCard from '../components/statCard/StatCard.jsx';
+import QuickAction from '../components/quickAction/QuickAction.jsx';
 
 const HomePage = () => {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profAttendance, setProfAttendance] = useState(null);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -32,8 +33,12 @@ const HomePage = () => {
             admins,
           });
         } else if (user?.role === 'admin') {
-          const res = await axios.get('http://localhost:4000/api/profile/stats', { withCredentials: true });
-          setStats(res.data);
+          const [statsRes, attendanceRes] = await Promise.all([
+            axios.get('http://localhost:4000/api/profile/stats', { withCredentials: true }),
+            axios.get('http://localhost:4000/api/attendance/gym', { withCredentials: true }),
+          ]);
+          setStats(statsRes.data);
+          setProfAttendance(attendanceRes.data);
         } else if (user?.role === 'profesor') {
           const [routinesRes, alumnosRes] = await Promise.all([
             axios.get('http://localhost:4000/api/routines/mis-rutinas', { withCredentials: true }),
@@ -137,14 +142,6 @@ const HomePage = () => {
                   Panel global de supervisión
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/nexusControl"
-                  className="bg-red-600 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-red-500 transition-all text-center"
-                >
-                  Panel Completo
-                </Link>
-              </div>
             </header>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -154,7 +151,20 @@ const HomePage = () => {
               <StatCard label="Próximos a vencer" value={loading ? '...' : stats?.expiring || 0} icon="⏳" color="amber" />
             </div>
 
-            <QuickAction to="/nexusControl" label="Ir al Panel de Control" description="Gestionar licencias, clientes y accesos" icon="⚡" color="red" />
+            <Link
+              to="/nexusControl"
+              className="group relative block bg-gradient-to-br from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 rounded-2xl p-5 border border-white/5 overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl shadow-red-900/30"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
+              <div className="relative z-10 flex items-center gap-4">
+                <span className="text-2xl">⚡</span>
+                <div className="flex-1">
+                  <p className="font-bold text-lg text-white">Ir al Panel de Control</p>
+                  <p className="text-sm text-white/60 mt-0.5">Gestionar licencias, clientes y accesos</p>
+                </div>
+                <span className="text-xl text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all">→</span>
+              </div>
+            </Link>
 
             <section>
               <h2 className="text-lg font-bold text-zinc-100 mb-4">Últimos Clientes</h2>
@@ -238,6 +248,43 @@ const HomePage = () => {
                 <Link to="/profile" className="text-sm font-semibold text-amber-400 hover:text-amber-300 underline">Ver más</Link>
               </div>
             )}
+
+            {/* ASISTENCIA DE PROFESORES */}
+            {profAttendance && (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-zinc-100">Asistencia de Profesores</h2>
+                  <span className="text-xs text-zinc-500">
+                    {profAttendance.todayCheckIns} / {profAttendance.totalProfessors} marcaron hoy
+                  </span>
+                </div>
+                <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
+                  {profAttendance.professors?.length === 0 ? (
+                    <p className="p-6 text-center text-zinc-500">No hay profesores registrados.</p>
+                  ) : (
+                    <div className="divide-y divide-zinc-800">
+                      {profAttendance.professors.map(p => (
+                        <div key={p._id} className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 hover:bg-zinc-800/50 transition-colors">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${p.checkedInToday ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-zinc-600'}`} />
+                            <span className="font-medium text-zinc-200 truncate text-sm sm:text-base">{p.name}</span>
+                          </div>
+                          <div className="text-right shrink-0 ml-2">
+                            {p.checkedInToday ? (
+                              <span className="text-xs text-emerald-400 font-semibold">
+                                ✓ {p.lastCheckIn ? new Date(p.lastCheckIn).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-zinc-500">Ausente</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
           </>
         )}
 
@@ -258,9 +305,6 @@ const HomePage = () => {
                 </div>
                 <p className="text-zinc-500 mt-1 font-medium text-sm sm:text-base">Panel del profesor</p>
               </div>
-              <div className="flex items-center gap-3">
-                <Link to="/teacherPanel" className="bg-emerald-600 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-500 transition-all text-center">+ Nueva Rutina</Link>
-              </div>
             </header>
 
             <div className="grid grid-cols-2 gap-4">
@@ -268,7 +312,20 @@ const HomePage = () => {
               <StatCard label="Rutinas Creadas" value={loading ? '...' : stats?.routines || 0} icon="📋" color="emerald" />
             </div>
 
-            <QuickAction to="/teacherPanel" label="Crear Nueva Rutina" description="Diseñá un plan de entrenamiento personalizado" icon="🎯" color="emerald" />
+            <Link
+              to="/teacherPanel"
+              className="group relative block bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-2xl p-5 border border-white/5 overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl shadow-emerald-900/30"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
+              <div className="relative z-10 flex items-center gap-4">
+                <span className="text-2xl">🎯</span>
+                <div className="flex-1">
+                  <p className="font-bold text-lg text-white">Crear Nueva Rutina</p>
+                  <p className="text-sm text-white/60 mt-0.5">Diseñá un plan de entrenamiento personalizado</p>
+                </div>
+                <span className="text-xl text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all">→</span>
+              </div>
+            </Link>
 
             <section>
               <h2 className="text-lg font-bold text-zinc-100 mb-4">Mis Alumnos</h2>

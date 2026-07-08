@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Routine from '../models/Routine.js';
+import Attendance from '../models/Attendance.js';
 
 export const updateMetrics = async (req, res) => {
   try {
@@ -45,13 +46,38 @@ export const getStaffStats = async (req, res) => {
     
     const totalRoutines = await Routine.countDocuments({ gymId });
 
+    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) + 'T00:00:00.000Z');
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const gymProfessors = await User.find({
+      createdBy: gymId,
+      role: 'profesor',
+      isActive: true,
+    }).select('_id createdAt');
+
+    const totalRecords = gymProfessors.length > 0
+      ? await Attendance.countDocuments({
+          userId: { $in: gymProfessors.map(u => u._id) },
+          date: { $gte: thirtyDaysAgo },
+        })
+      : 0;
+
+    const totalPossibleDays = gymProfessors.reduce((sum, prof) => {
+      const daysSinceCreation = Math.ceil((today - prof.createdAt) / (24 * 60 * 60 * 1000));
+      return sum + Math.min(30, Math.max(1, daysSinceCreation));
+    }, 0);
+    const attendanceRate = totalPossibleDays > 0
+      ? Math.min(100, Math.round((totalRecords / totalPossibleDays) * 100))
+      : 0;
+
     res.status(200).json({
       activeStudents,
       inactiveStudents,
       activeTeachers,
       inactiveTeachers,
       totalRoutines,
-      attendanceRate: 85 
+      attendanceRate,
     });
   } catch (error) {
     console.error("Error obteniendo estadísticas:", error);
