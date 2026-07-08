@@ -30,10 +30,13 @@ const routineSchema = new mongoose.Schema(
       ref: 'User', 
       required: true 
     },
-    studentId: { 
+    students: [{ 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User',
-      required: true 
+      ref: 'User'
+    }],
+    assignedToAll: { 
+      type: Boolean, 
+      default: false 
     },
 
     gymId: { 

@@ -64,11 +64,25 @@ const RoutineList = () => {
             <div key={routine._id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <h2 className="text-xl font-bold text-zinc-100 mb-2">{routine.title}</h2>
-                <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-                  routine.level === 'Principiante' ? 'bg-green-500/10 text-green-400' :
-                  routine.level === 'Intermedio' ? 'bg-yellow-500/10 text-yellow-400' :
-                  'bg-red-500/10 text-red-400'
-                }`}>{routine.level}</span>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                    routine.level === 'Principiante' ? 'bg-green-500/10 text-green-400' :
+                    routine.level === 'Intermedio' ? 'bg-yellow-500/10 text-yellow-400' :
+                    'bg-red-500/10 text-red-400'
+                  }`}>{routine.level}</span>
+                  {(user?.role === 'profesor' || user?.role === 'admin') && routine.assignedToAll && (
+                    <span className="px-3 py-1 text-xs font-bold rounded-full bg-blue-500/10 text-blue-400">
+                      Todos los alumnos
+                    </span>
+                  )}
+                </div>
+                {(user?.role === 'profesor' || user?.role === 'admin') && !routine.assignedToAll && routine.students?.length > 0 && (
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {routine.students.length === 1
+                      ? `Asignado a: ${routine.students[0].name}`
+                      : `Asignado a ${routine.students.length} alumnos`}
+                  </p>
+                )}
               </div>
               <div className="pt-4 border-t border-zinc-800 mt-6">
                 {(user?.role === "profesor" || user?.role === "admin") ? (
