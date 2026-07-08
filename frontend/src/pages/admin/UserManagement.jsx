@@ -26,8 +26,20 @@ const UserManagement = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchDni, setSearchDni] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [view, setView] = useState('users');
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return {
+      from: from.toISOString().split('T')[0],
+      to: now.toISOString().split('T')[0],
+    };
+  });
   const [editingUser, setEditingUser] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -55,6 +67,21 @@ const UserManagement = () => {
       console.error("Error fetching users", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAttendance = async () => {
+    setAttendanceLoading(true);
+    try {
+      const response = await axios.get('http://localhost:4000/api/attendance/gym/history', {
+        params: { startDate: dateRange.from, endDate: dateRange.to },
+        withCredentials: true,
+      });
+      setAttendanceData(response.data);
+    } catch (error) {
+      console.error('Error fetching attendance', error);
+    } finally {
+      setAttendanceLoading(false);
     }
   };
 
@@ -212,43 +239,71 @@ const UserManagement = () => {
           <span>←</span> Volver al Inicio
         </button>
 
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
-              Gestión de Usuarios
-            </h1>
-            <p className="text-zinc-400 mt-1">
-              Control de la base de usuarios del gimnasio
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/exercise-library"
-              className="bg-zinc-800 text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors border border-zinc-700"
-            >
-              Video Librería
-            </Link>
-            <button
-              onClick={() => {
-                setIsModalOpen(true);
-                setErrors({});
-              }}
-              className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
-            >
-              + Nuevo Usuario
-            </button>
-          </div>
+        <div className="mb-6 flex gap-1 bg-zinc-900 rounded-xl p-1 border border-zinc-800 w-fit">
+          <button
+            onClick={() => setView('users')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${view === 'users' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+          >
+            Usuarios
+          </button>
+          <button
+            onClick={() => { setView('attendance'); fetchAttendance(); }}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${view === 'attendance' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+          >
+            Asistencia Profesores
+          </button>
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-zinc-400">
+        {view === 'users' && (
+          <>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
+                  Gestión de Usuarios
+                </h1>
+                <p className="text-zinc-400 mt-1">
+                  Control de la base de usuarios del gimnasio
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/exercise-library"
+                  className="bg-zinc-800 text-zinc-300 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors border border-zinc-700"
+                >
+                  Video Librería
+                </Link>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(true);
+                    setErrors({});
+                  }}
+                  className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
+                >
+                  + Nuevo Usuario
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm overflow-hidden">
+              <div className="p-3 sm:p-4 border-b border-zinc-800">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Buscar por DNI..."
+                  maxLength={8}
+                  value={searchDni}
+                  onChange={(e) => setSearchDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  className="w-full sm:w-64 p-2 bg-zinc-800 border border-zinc-700 rounded-xl text-xs text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-zinc-400">
               <thead className="bg-zinc-800/50 border-b border-zinc-700 text-zinc-400 font-medium">
                 <tr>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm">Usuario</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm hidden sm:table-cell">Acceso</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm hidden sm:table-cell">Rol</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm hidden sm:table-cell">Vencimiento</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm table-cell">Acceso</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm table-cell">Rol</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm table-cell">Vencimiento</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-zinc-300 text-xs sm:text-sm">Estado</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-zinc-300 text-xs sm:text-sm">Acción</th>
                 </tr>
@@ -273,7 +328,7 @@ const UserManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  users.filter(u => u.dni && u.dni.includes(searchDni)).map((user) => (
                     <tr
                       key={user._id}
                       className="hover:bg-zinc-800/50 transition-colors"
@@ -281,11 +336,11 @@ const UserManagement = () => {
                       <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium text-zinc-100 text-sm sm:text-base">
                         {user.name}
                       </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">
-                        {user.email ? user.email.split("@")[0] : "Sin DNI"}
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">
+                        {user.dni || "Sin DNI"}
                       </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">{user.role}</td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm hidden sm:table-cell">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">{user.role}</td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">
                         {user.licenseEndDate
                           ? new Date(user.licenseEndDate)
                               .toISOString()
@@ -336,6 +391,119 @@ const UserManagement = () => {
             </table>
           </div>
         </div>
+          </>
+        )}
+
+        {view === 'attendance' && (
+          <div>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
+                Asistencia de Profesores
+              </h1>
+              <p className="text-zinc-400 mt-1">
+                Historial de check-ins de los profesores del gimnasio
+              </p>
+            </div>
+
+            <div className="mb-6 flex flex-col sm:flex-row gap-3">
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Desde</label>
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                  className="w-full sm:w-auto px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Hasta</label>
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                  className="w-full sm:w-auto px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={fetchAttendance}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors"
+                >
+                  Filtrar
+                </button>
+              </div>
+            </div>
+
+            {attendanceLoading ? (
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-8 text-center text-zinc-400">
+                Cargando asistencia...
+              </div>
+            ) : attendanceData && attendanceData.professors.length > 0 ? (
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-zinc-400">
+                    <thead className="bg-zinc-800/50 border-b border-zinc-700">
+                      <tr>
+                        <th className="px-4 py-3 text-zinc-300 font-medium">Profesor</th>
+                        <th className="px-4 py-3 text-zinc-300 font-medium">Días</th>
+                        <th className="px-4 py-3 text-zinc-300 font-medium">Asistencia</th>
+                        <th className="px-4 py-3 text-zinc-300 font-medium">Último Check-in</th>
+                        <th className="px-4 py-3 text-zinc-300 font-medium">Registro</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {attendanceData.professors.map(prof => {
+                        const sortedDates = Object.keys(prof.dailyCheckIns).sort().reverse();
+                        return (
+                          <tr key={prof._id} className="hover:bg-zinc-800/50 transition-colors">
+                            <td className="px-4 py-3 font-medium text-zinc-100 whitespace-nowrap">{prof.name}</td>
+                            <td className="px-4 py-3">{prof.totalDays} / {attendanceData.totalDays}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      prof.attendanceRate >= 70 ? 'bg-green-500' : prof.attendanceRate >= 40 ? 'bg-amber-500' : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${prof.attendanceRate}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-zinc-400">{prof.attendanceRate}%</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-zinc-400">
+                              {prof.lastCheckIn ? new Date(prof.lastCheckIn).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '—'}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {sortedDates.slice(0, 15).map(date => (
+                                  <span
+                                    key={date}
+                                    className="text-xs px-1.5 py-0.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded"
+                                    title={new Date(prof.dailyCheckIns[date]).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
+                                  >
+                                    {date.slice(5)}
+                                  </span>
+                                ))}
+                                {sortedDates.length > 15 && (
+                                  <span className="text-xs text-zinc-500">+{sortedDates.length - 15} más</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : attendanceData ? (
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-8 text-center text-zinc-400">
+                No hay registros de asistencia en este período.
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
