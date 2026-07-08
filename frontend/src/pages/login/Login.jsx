@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate, useLocation } from 'react-router-dom'; 
 import { useAuth } from '../../context/AuthContext'; 
 import { verifyDni } from '../../service/authService'; 
 import SwipeButton from '../../components/SwipeButton/SwipeButton'; 
@@ -15,13 +15,17 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { signin } = useAuth();
+
+  const licenseReason = location.state?.reason;
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     if (value === '' || /^[0-9\b]+$/.test(value)) {
       setDni(value);
       setError('');
+      if (licenseReason) window.history.replaceState({}, '');
     }
   };
 
@@ -86,6 +90,14 @@ const Login = () => {
           <h1 className="text-2xl font-black text-white tracking-tight">NEXUS SYSTEM</h1>
           <p className="text-slate-400 text-sm mt-1.5 font-medium tracking-wide">Terminal de Acceso para gimansios</p>
         </div>
+
+        {/* Mensaje de licencia vencida/suspendida desde ProtectedRoute */}
+        {licenseReason && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-4 text-center animate-slide-up">
+            <p className="text-red-400 text-sm font-bold mb-1">🔒 Acceso Restringido</p>
+            <p className="text-red-400/80 text-xs">{licenseReason}</p>
+          </div>
+        )}
 
         {/* Tarjeta Glassmorphism refinada */}
         <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-5 sm:p-8 backdrop-blur-md shadow-2xl shadow-black/50">

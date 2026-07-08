@@ -7,7 +7,7 @@ export const validateToken = (req, res, next) => {
     return res.status(401).json({ message: "No token, autorización denegada" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || "clave_secreta_temporal", (err, user) => {
+  jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
     if (err) {
       return res.status(403).json({ message: "Token inválido" });
     }
