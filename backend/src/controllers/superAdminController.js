@@ -89,6 +89,26 @@ export const renewAdmin = async (req, res) => {
   }
 };
 
+// Alternar chatbot (habilitar/deshabilitar)
+export const toggleChatbot = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const admin = await User.findById(id);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(404).json({ message: 'Gimnasio no encontrado' });
+    }
+    admin.chatbotEnabled = !admin.chatbotEnabled;
+    await admin.save();
+    res.status(200).json({
+      message: admin.chatbotEnabled ? 'Chatbot habilitado' : 'Chatbot deshabilitado',
+      chatbotEnabled: admin.chatbotEnabled,
+    });
+  } catch (error) {
+    console.error('Error toggling chatbot:', error);
+    res.status(500).json({ message: 'Error al actualizar el chatbot' });
+  }
+};
+
 // Eliminar Cliente
 export const deleteAdmin = async (req, res) => {
   try {
