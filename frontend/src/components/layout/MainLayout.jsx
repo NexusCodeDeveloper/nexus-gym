@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import BottomNav from './BottomNav/index.jsx';
+import BottomNav from './buttonNav/ButtonNav.jsx';
 
 const MainLayout = () => {
   return (
