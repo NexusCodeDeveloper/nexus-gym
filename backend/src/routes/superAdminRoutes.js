@@ -1,17 +1,20 @@
-import express from "express";
-import { getAdmins, toggleAdminAccess, createAdmin, renewAdmin, deleteAdmin, updateAdmin, toggleChatbot } from "../controllers/superAdminController.js";
-import { validateToken } from "../middlewares/validateToken.js";
+import { Router } from 'express';
+import { getAdmins, toggleAdminAccess, createAdmin, renewAdmin, deleteAdmin, updateAdmin, toggleChatbot } from '../controllers/superAdminController.js';
+import { validateToken } from '../middlewares/validateToken.js';
+import { requireRole } from '../middlewares/roleGuard.js';
+import { createAdminSchema, updateAdminSchema, idParamSchema, validateParams } from '../validators/superAdminValidators.js';
+import { validate } from '../validators/attendanceValidators.js';
 
-const router = express.Router();
+const router = Router();
 
-// Rutas protegidas para el Super Admin
-router.get("/admins", validateToken, getAdmins);
-router.patch("/admins/:id/toggle-access", validateToken, toggleAdminAccess);
-router.post("/admins", validateToken, createAdmin);
-router.patch("/admins/:id/renew", validateToken, renewAdmin);
-router.delete("/admins/:id", validateToken, deleteAdmin);
-router.put("/admins/:id", validateToken, updateAdmin);
-router.patch("/admins/:id/chatbot-toggle", validateToken, toggleChatbot);
+router.use(validateToken, requireRole('superAdmin'));
 
+router.get('/admins', getAdmins);
+router.post('/admins', validate(createAdminSchema), createAdmin);
+router.put('/admins/:id', validateParams(idParamSchema), validate(updateAdminSchema), updateAdmin);
+router.patch('/admins/:id/toggle-access', validateParams(idParamSchema), toggleAdminAccess);
+router.patch('/admins/:id/renew', validateParams(idParamSchema), renewAdmin);
+router.patch('/admins/:id/chatbot-toggle', validateParams(idParamSchema), toggleChatbot);
+router.delete('/admins/:id', validateParams(idParamSchema), deleteAdmin);
 
 export default router;

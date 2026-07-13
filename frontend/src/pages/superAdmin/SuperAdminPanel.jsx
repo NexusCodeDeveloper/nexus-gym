@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Agregamos el hook de navegación
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import api from '../../service/api.js';
 import { z } from 'zod';
-import { showSuccessToast, showErrorToast, showConfirmDialog, showDeleteConfirmDialog, showPositiveConfirmDialog } from '../../utils/swal';
+import { showSuccessToast, showErrorToast, showDeleteConfirmDialog, showPositiveConfirmDialog } from '../../utils/swal';
 
 const getToday = () => {
   const today = new Date();
@@ -76,10 +76,11 @@ const SuperAdminPanel = () => {
 
   const fetchAdmins = async () => {
     try {
-      const response = await axios.get("http://localhost:4000/api/super-admin/admins", { withCredentials: true });
-      setAdmins(response.data);
+      const response = await api.get("/api/super-admin/admins");
+      setAdmins(response.data.data || response.data);
     } catch (error) {
       console.error("Error fetching admins", error);
+      showErrorToast('Error al cargar los clientes');
     } finally {
       setIsLoading(false);
     }
@@ -107,21 +108,21 @@ const SuperAdminPanel = () => {
     }
 
     try {
-      await axios.post("http://localhost:4000/api/super-admin/admins", createFormData, { withCredentials: true });
+      await api.post("/api/super-admin/admins", createFormData);
       setIsCreateModalOpen(false);
-      showSuccessToast("Cliente creado y activado con éxito.");
+      showSuccessToast('Cliente creado correctamente');
       setCreateFormData({ name: '', dni: '', licenseStartDate: '', licenseEndDate: '' });
-      fetchAdmins(); 
+      fetchAdmins();
     } catch (error) {
-      showErrorToast(error.response?.data?.message || "Ocurrió un error al crear el cliente");
+      showErrorToast(error.response?.data?.message || 'Error al crear el cliente');
     }
   };
 
   const handleToggleChatbot = async (id) => {
     try {
-      const res = await axios.patch(`http://localhost:4000/api/super-admin/admins/${id}/chatbot-toggle`, {}, { withCredentials: true });
+      const res = await api.patch(`/api/super-admin/admins/${id}/chatbot-toggle`);
       showSuccessToast(res.data.message);
-      setAdmins(admins.map(a => a._id === id ? { ...a, chatbotEnabled: res.data.chatbotEnabled } : a));
+      setAdmins(admins.map(a => a._id === id ? { ...a, chatbotEnabled: res.data.data?.chatbotEnabled } : a));
     } catch (error) {
       showErrorToast('Error al cambiar estado del chatbot');
     }
@@ -129,12 +130,13 @@ const SuperAdminPanel = () => {
 
   const handleToggleAccess = async (id) => {
     try {
-      const response = await axios.patch(`http://localhost:4000/api/super-admin/admins/${id}/toggle-access`, {}, { withCredentials: true });
-      const actionText = response.data.isActive ? 'activado' : 'suspendido';
-      showSuccessToast(`Acceso ${actionText} correctamente.`);
-      setAdmins(admins.map(admin => admin._id === id ? { ...admin, isActive: response.data.isActive } : admin));
+      const response = await api.patch(`/api/super-admin/admins/${id}/toggle-access`);
+      const isActive = response.data.data?.isActive;
+      const actionText = isActive ? 'activado' : 'suspendido';
+      showSuccessToast(`Acceso ${actionText} correctamente`);
+      setAdmins(admins.map(admin => admin._id === id ? { ...admin, isActive } : admin));
     } catch (error) {
-      console.error("Error toggling access", error);
+      showErrorToast('Error al cambiar el acceso');
     }
   };
 
@@ -148,11 +150,11 @@ const SuperAdminPanel = () => {
     if (!isConfirmed) return;
 
     try {
-      await axios.patch(`http://localhost:4000/api/super-admin/admins/${id}/renew`, {}, { withCredentials: true });
-      fetchAdmins(); 
-      showSuccessToast("Licencia renovada con éxito");
+      await api.patch(`/api/super-admin/admins/${id}/renew`);
+      fetchAdmins();
+      showSuccessToast('Licencia renovada correctamente');
     } catch (error) {
-      showErrorToast("Error al renovar la licencia");
+      showErrorToast('Error al renovar la licencia');
     }
   };
 
@@ -165,11 +167,11 @@ const SuperAdminPanel = () => {
     if (!isConfirmed) return;
 
     try {
-      await axios.delete(`http://localhost:4000/api/super-admin/admins/${id}`, { withCredentials: true });
+      await api.delete(`/api/super-admin/admins/${id}`);
       setAdmins(admins.filter(admin => admin._id !== id));
-      showSuccessToast("Cliente eliminado correctamente");
+      showSuccessToast('Cliente eliminado correctamente');
     } catch (error) {
-      showErrorToast("Error al eliminar el cliente");
+      showErrorToast('Error al eliminar el cliente');
     }
   };
 
@@ -204,20 +206,22 @@ const SuperAdminPanel = () => {
     }
 
     try {
-      await axios.put(`http://localhost:4000/api/super-admin/admins/${editingAdmin._id}`, editingAdmin, { withCredentials: true });
+      await api.put(`/api/super-admin/admins/${editingAdmin._id}`, editingAdmin);
       setIsEditModalOpen(false);
       setEditingAdmin(null);
-      showSuccessToast("Datos del cliente actualizados");
+      showSuccessToast('Datos del cliente actualizados');
       fetchAdmins();
     } catch (error) {
-      showErrorToast("Error al actualizar los datos");
+      showErrorToast('Error al actualizar los datos');
     }
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Sin límite";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Sin límite";
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-AR', options);
+    return date.toLocaleDateString('es-AR', options);
   };
 
   return (
