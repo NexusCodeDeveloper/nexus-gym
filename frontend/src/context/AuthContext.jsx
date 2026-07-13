@@ -1,6 +1,6 @@
-import { createContext, useState, useContext, useEffect } from "react";
-import axios from "axios";
-import { showConfirmDialog, showErrorToast } from "../utils/swal";
+import { createContext, useState, useContext, useEffect, useRef } from "react";
+import { showConfirmDialog, showErrorToast, showLicenseAlert } from "../utils/swal";
+import api from "../service/api.js";
 
 export const AuthContext = createContext();
 
@@ -16,10 +16,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const alertShown = useRef(false);
 
   const signin = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
+    checkLicenseAlert(userData);
   };
 
   const logout = async () => {
@@ -31,9 +33,7 @@ export const AuthProvider = ({ children }) => {
 
     if (isConfirmed) {
       try {
-        await axios.post("http://localhost:4000/api/auth/logout", {}, { 
-          withCredentials: true 
-        });
+        await api.post("/api/auth/logout", {});
         setUser(null);
         setIsAuthenticated(false);
         window.location.href = '/login';
@@ -44,19 +44,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔥 NUEVA FUNCIÓN: Permite actualizar el estado global del usuario en vivo
   const updateUser = (updatedData) => {
     setUser(updatedData);
   };
 
+  function checkLicenseAlert(userData) {
+    if (!userData) return;
+    const role = userData.role;
+    const endDateStr = userData.licenseEndDate;
+    if (role === 'superAdmin' || !endDateStr || alertShown.current) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(endDateStr);
+    endDate.setHours(0, 0, 0, 0);
+    const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+
+    if (daysLeft >= 0 && daysLeft <= 2) {
+      alertShown.current = true;
+      showLicenseAlert(daysLeft);
+    }
+  }
+
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await axios.get("http://localhost:4000/api/auth/profile", {
-          withCredentials: true,
-        });
-        setUser(res.data);
+        const res = await api.get("/api/auth/profile");
+        const userData = res.data;
+        setUser(userData);
         setIsAuthenticated(true);
+        checkLicenseAlert(userData);
       } catch (error) {
         setUser(null);
         setIsAuthenticated(false);
@@ -65,7 +82,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
     checkLogin();
-  }, []); 
+  }, []);
 
   return (
     <AuthContext.Provider

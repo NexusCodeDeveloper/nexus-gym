@@ -80,6 +80,24 @@ export const showDeleteConfirmDialog = async ({ title = '¿Estás seguro?', text
   return result.isConfirmed;
 };
 
+// Función para mostrar alerta de licencia próxima a vencer
+export const showLicenseAlert = (daysLeft) => {
+  const label = daysLeft === 0 ? 'HOY' : daysLeft === 1 ? 'MAÑANA' : `en ${daysLeft} días`;
+  Swal.fire({
+    icon: 'warning',
+    title: 'Tu plan está próximo a vencer',
+    html: `<p style="color: #a1a1aa; font-size: 14px;">Tu licencia vence <strong style="color: #fbbf24;">${label}</strong>.</p><p style="color: #a1a1aa; font-size: 14px; margin-top: 4px;">Comunicate con el gimnasio para renovarla y evitar la suspensión del servicio.</p>`,
+    confirmButtonText: 'Entendido',
+    customClass: {
+      popup: '!bg-zinc-900 !rounded-2xl !border !border-zinc-800',
+      title: '!text-zinc-100 !text-lg',
+      htmlContainer: '!text-zinc-400',
+      confirmButton: '!bg-blue-600 !hover:!bg-blue-500 !text-white !rounded-lg !shadow-none !px-6 !py-2.5 !font-semibold !text-sm',
+    },
+    buttonsStyling: false,
+  });
+};
+
 // Función para mostrar un diálogo de confirmación para acciones positivas (ej: renovar)
 export const showPositiveConfirmDialog = async ({ title, text, confirmButtonText = 'Sí, confirmar' }) => {
   const result = await Swal.fire({
