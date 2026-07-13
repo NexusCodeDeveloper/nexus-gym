@@ -59,10 +59,19 @@ const loadHistory = async (userId) => {
   return memory.messages.slice(-MAX_HISTORY).map(({ role, content }) => ({ role, content }));
 };
 
+const MAX_MESSAGES = 100;
+
 const saveMessage = async (userId, role, content) => {
   await ChatMemory.findOneAndUpdate(
     { userId },
-    { $push: { messages: { role, content, timestamp: new Date() } } },
+    {
+      $push: {
+        messages: {
+          $each: [{ role, content, timestamp: new Date() }],
+          $slice: -MAX_MESSAGES,
+        },
+      },
+    },
     { upsert: true }
   );
 };
@@ -142,20 +151,24 @@ export const chat = async (req, res) => {
       }
     }
 
-    const routines = user.role === 'alumno'
-      ? await Routine.find({ studentId: user._id }).select('title days.dayName')
-      : await Routine.find({ gymId: user._id || user.createdBy }).select('title');
+    const routines = user.role === 'superAdmin'
+      ? []
+      : user.role === 'alumno'
+        ? await Routine.find({ students: user._id }).select('title days.dayName')
+        : await Routine.find({ gymId: user._id || user.createdBy }).select('title');
 
-    const studentsCount = user.role !== 'alumno'
-      ? await User.countDocuments({ createdBy: user._id, role: 'alumno' })
-      : 0;
+    const studentsCount = user.role === 'superAdmin'
+      ? 0
+      : user.role !== 'alumno'
+        ? await User.countDocuments({ createdBy: user._id, role: 'alumno' })
+        : 0;
 
     const allowedTools = filterToolsByRole(user.role);
     const systemPrompt = buildSystemPrompt(user, routines, studentsCount);
     const dbHistory = await loadHistory(req.user.id);
 
     // ── Support flow: detect error, ask detail, show wsp ──
-    const isErrorMsg = /error|problema|falla|no (funciona|carga|anda|abre|entra|anda|marcha)|tira.*error|bug|soporte|reporte/i.test(message);
+    const isErrorMsg = /error|problema|falla|no (funciona|carga|anda|abre|entra|marcha)|tira.*error|bug|soporte|reporte/i.test(message);
     const isResolvedMsg = /ya (lo )?(solucione|arregle|resolvi)|no hay (más )?(error|problema)|ya (anda|funciona)|gracias.*(ayuda|solucion)/i.test(message);
     const lastBotMsg = dbHistory.filter(m => m.role === 'assistant').slice(-1).map(m => m.content).join(' ');
     const askedError = /qué error|describime/i.test(lastBotMsg);
@@ -163,9 +176,7 @@ export const chat = async (req, res) => {
 
     if (isErrorMsg && !isResolvedMsg) {
       let reply = '';
-      if (!askedError) {
-        reply = '¿Qué error te aparece? Describime exactamente lo que ves en pantalla.';
-      } else if (!userGaveError) {
+      if (!askedError || !userGaveError) {
         reply = '¿Qué error te aparece? Describime exactamente lo que ves en pantalla.';
       } else {
         const errorDetail = message.trim();
@@ -282,7 +293,7 @@ export const chat = async (req, res) => {
         try { args = JSON.parse(toolCall.function.arguments); } catch (e) { args = {}; }
 
         try {
-          const result = await executeTool(fnName, args, user.role);
+          const result = await executeTool(fnName, args, user.role, req.user.id);
           groqMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
@@ -293,7 +304,7 @@ export const chat = async (req, res) => {
           groqMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
-            content: JSON.stringify({ error: err.message }),
+            content: JSON.stringify({ error: 'Error interno al ejecutar la herramienta' }),
           });
         }
       }

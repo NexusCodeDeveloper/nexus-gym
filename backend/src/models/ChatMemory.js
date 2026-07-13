@@ -25,16 +25,12 @@ const chatMemorySchema = new mongoose.Schema({
   },
   messages: {
     type: [chatMessageSchema],
-    validate: {
-      validator: (msgs) => msgs.length <= 100,
-      message: 'El historial no puede superar los 100 mensajes.',
-    },
+    default: [],
   },
 }, {
   timestamps: true,
 });
 
-chatMemorySchema.index({ userId: 1, updatedAt: 1 });
 chatMemorySchema.index({ updatedAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600 });
 
 export default mongoose.model('ChatMemory', chatMemorySchema);

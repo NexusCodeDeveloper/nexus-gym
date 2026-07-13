@@ -35,6 +35,8 @@ const FeedbackButton = ({ type, active, onClick }) => (
   </button>
 );
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
 const ChatWidget = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([greeting]);
@@ -49,7 +51,7 @@ const ChatWidget = () => {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const res = await fetch('http://localhost:4000/api/chat/history', { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/chat/history`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           if (json.messages?.length) {
@@ -76,7 +78,7 @@ const ChatWidget = () => {
 
   const clearChat = async () => {
     try {
-      await fetch('http://localhost:4000/api/chat/history', {
+      await fetch(`${API_URL}/api/chat/history`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -98,7 +100,7 @@ const ChatWidget = () => {
     setMessages(prev => [...prev, { role: 'assistant', content: '', time: new Date() }]);
 
     try {
-      const response = await fetch('http://localhost:4000/api/chat/message', {
+      const response = await fetch(`${API_URL}/api/chat/message`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

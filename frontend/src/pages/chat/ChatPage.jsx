@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ChatWidget from '../../components/chatWidget/ChatWidget.jsx';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
 const ChatPage = () => {
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(true);
@@ -9,7 +11,7 @@ const ChatPage = () => {
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await axios.get('http://localhost:4000/api/chat/status', { withCredentials: true });
+        const res = await axios.get(`${API_URL}/api/chat/status`, { withCredentials: true });
         setEnabled(res.data.enabled);
       } catch {
         setEnabled(true);
