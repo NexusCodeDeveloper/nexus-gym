@@ -7,3 +7,12 @@ export const chatLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+export const checkinLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { message: 'Demasiados intentos. Esperá un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id || req.ip,
+});

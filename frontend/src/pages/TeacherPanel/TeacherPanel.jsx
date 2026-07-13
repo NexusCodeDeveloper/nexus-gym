@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
 import { showSuccessToast, showErrorToast } from '../../utils/swal';
+import api from '../../service/api.js';
 
 const VideoPickerModal = ({ onSelect, onClose, videos }) => {
   const [search, setSearch] = useState('');
@@ -60,7 +60,6 @@ const TeacherPanel = () => {
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(isEditing);
-  const [checkedIn, setCheckedIn] = useState(false);
   const [showVideoPicker, setShowVideoPicker] = useState(null);
   const [libraryVideos, setLibraryVideos] = useState([]);
   
@@ -73,33 +72,17 @@ const TeacherPanel = () => {
   });
 
   useEffect(() => {
-    axios.get('http://localhost:4000/api/attendance/my', { withCredentials: true })
-      .then(res => setCheckedIn(res.data.checkedInToday))
-      .catch(() => {});
-  }, []);
-
-  const handleCheckin = async () => {
-    try {
-      await axios.post('http://localhost:4000/api/attendance/checkin', {}, { withCredentials: true });
-      setCheckedIn(true);
-      showSuccessToast('Asistencia marcada correctamente');
-    } catch (error) {
-      showErrorToast(error.response?.data?.message || 'Error al marcar asistencia');
-    }
-  };
-
-  useEffect(() => {
     const fetchInitialData = async () => {
       try {
         const [alumnosRes, videosRes] = await Promise.all([
-          axios.get("http://localhost:4000/api/auth/alumnos", { withCredentials: true }),
-          axios.get("http://localhost:4000/api/exercise-media", { withCredentials: true }).catch(() => ({ data: [] })),
+          api.get("/api/auth/alumnos"),
+          api.get("/api/exercise-media").catch(() => ({ data: [] })),
         ]);
         setAlumnos(alumnosRes.data);
         setLibraryVideos(videosRes.data);
 
         if (isEditing) {
-          const routineRes = await axios.get(`http://localhost:4000/api/routines/${id}`, { withCredentials: true });
+          const routineRes = await api.get(`/api/routines/${id}`);
           setRoutine(routineRes.data);
         }
       } catch (error) {
@@ -155,17 +138,11 @@ const TeacherPanel = () => {
     if (!routine.title) return showErrorToast("Por favor, ponle un título a la rutina");
     if (!routine.assignedToAll && routine.students.length === 0) return showErrorToast("Seleccioná al menos un alumno o marcá 'Para todos'");
 
-    const url = isEditing ? `http://localhost:4000/api/routines/${id}` : "http://localhost:4000/api/routines/create";
+    const url = isEditing ? `/api/routines/${id}` : "/api/routines/create";
     const method = isEditing ? "PUT" : "POST";
 
     try {
-      // Usar axios para consistencia y manejo de withCredentials
-      await axios({
-        url,
-        method,
-        data: routine,
-        withCredentials: true,
-      });
+      await api({ url, method, data: routine });
 
       showSuccessToast(isEditing ? "¡Rutina actualizada!" : "¡Rutina guardada!");
       navigate(-1);
@@ -182,20 +159,10 @@ const TeacherPanel = () => {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
           <button onClick={() => navigate(-1)} className="text-sm font-medium text-zinc-400 hover:text-zinc-200 flex items-center gap-2">
             <span>←</span> Volver
           </button>
-          {checkedIn ? (
-            <span className="text-emerald-400 text-sm font-bold flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-lg">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-              Asistencia marcada hoy
-            </span>
-          ) : (
-            <button onClick={handleCheckin} className="text-sm font-bold text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-lg hover:bg-blue-500/20 transition-all flex items-center gap-1.5">
-              📅 Marcar Asistencia
-            </button>
-          )}
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-zinc-100 mb-8">{isEditing ? 'Editar Rutina' : 'Crear Nueva Rutina'}</h1>
         

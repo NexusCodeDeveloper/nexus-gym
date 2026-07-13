@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import { z } from "zod";
 import { useAuth } from "../../context/AuthContext";
 import { showSuccessToast, showErrorToast, showConfirmDialog, showDeleteConfirmDialog } from "../../utils/swal";
+import AttendanceToday from "../../components/attendance/AttendanceToday.jsx";
+import api from "../../service/api.js";
 
 const userSchema = z.object({
   name: z
@@ -30,16 +31,6 @@ const UserManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [view, setView] = useState('users');
-  const [attendanceData, setAttendanceData] = useState(null);
-  const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [dateRange, setDateRange] = useState(() => {
-    const now = new Date();
-    const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    return {
-      from: from.toISOString().split('T')[0],
-      to: now.toISOString().split('T')[0],
-    };
-  });
   const [editingUser, setEditingUser] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -58,10 +49,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:4000/api/admin/users",
-        { withCredentials: true }
-      );
+      const response = await api.get("/api/admin/users");
       setUsers(response.data);
     } catch (error) {
       console.error("Error fetching users", error);
@@ -70,20 +58,7 @@ const UserManagement = () => {
     }
   };
 
-  const fetchAttendance = async () => {
-    setAttendanceLoading(true);
-    try {
-      const response = await axios.get('http://localhost:4000/api/attendance/gym/history', {
-        params: { startDate: dateRange.from, endDate: dateRange.to },
-        withCredentials: true,
-      });
-      setAttendanceData(response.data);
-    } catch (error) {
-      console.error('Error fetching attendance', error);
-    } finally {
-      setAttendanceLoading(false);
-    }
-  };
+
 
   useEffect(() => {
     fetchUsers();
@@ -119,11 +94,7 @@ const UserManagement = () => {
     };
 
     try {
-      await axios.post(
-        "http://localhost:4000/api/auth/register",
-        newUserPayload,
-        { withCredentials: true }
-      );
+      await api.post("/api/auth/register", newUserPayload);
       setIsModalOpen(false);
       setFormData({
         name: "",
@@ -170,11 +141,7 @@ const UserManagement = () => {
     }
 
     try {
-      await axios.put(
-        `http://localhost:4000/api/admin/users/${editingUser._id}/license`,
-        editFormData,
-        { withCredentials: true }
-      );
+      await api.put(`/api/admin/users/${editingUser._id}/license`, editFormData);
       setIsEditModalOpen(false);
       showSuccessToast("¡Licencia actualizada!");
       fetchUsers();
@@ -195,11 +162,7 @@ const UserManagement = () => {
     if (!isConfirmed) return;
 
     try {
-      await axios.put(
-        `http://localhost:4000/api/admin/users/${userId}/suspend`,
-        {},
-        { withCredentials: true }
-      );
+      await api.put(`/api/admin/users/${userId}/suspend`, {});
       showSuccessToast(`Usuario ${actionText === 'suspender' ? 'suspendido' : 'activado'} con éxito.`);
       fetchUsers();
     } catch (error) {
@@ -217,10 +180,7 @@ const UserManagement = () => {
     if (!isConfirmed) return;
 
     try {
-      await axios.delete(
-        `http://localhost:4000/api/admin/users/${userId}`,
-        { withCredentials: true }
-      );
+      await api.delete(`/api/admin/users/${userId}`);
       showSuccessToast('¡Usuario eliminado!');
       fetchUsers();
     } catch (error) {
@@ -247,7 +207,7 @@ const UserManagement = () => {
             Usuarios
           </button>
           <button
-            onClick={() => { setView('attendance'); fetchAttendance(); }}
+            onClick={() => setView('attendance')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${view === 'attendance' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
           >
             Asistencia Profesores
@@ -394,116 +354,7 @@ const UserManagement = () => {
           </>
         )}
 
-        {view === 'attendance' && (
-          <div>
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
-                Asistencia de Profesores
-              </h1>
-              <p className="text-zinc-400 mt-1">
-                Historial de check-ins de los profesores del gimnasio
-              </p>
-            </div>
-
-            <div className="mb-6 flex flex-col sm:flex-row gap-3">
-              <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Desde</label>
-                <input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-                  className="w-full sm:w-auto px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Hasta</label>
-                <input
-                  type="date"
-                  value={dateRange.to}
-                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-                  className="w-full sm:w-auto px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={fetchAttendance}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition-colors"
-                >
-                  Filtrar
-                </button>
-              </div>
-            </div>
-
-            {attendanceLoading ? (
-              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-8 text-center text-zinc-400">
-                Cargando asistencia...
-              </div>
-            ) : attendanceData && attendanceData.professors.length > 0 ? (
-              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-zinc-400">
-                    <thead className="bg-zinc-800/50 border-b border-zinc-700">
-                      <tr>
-                        <th className="px-4 py-3 text-zinc-300 font-medium">Profesor</th>
-                        <th className="px-4 py-3 text-zinc-300 font-medium">Días</th>
-                        <th className="px-4 py-3 text-zinc-300 font-medium">Asistencia</th>
-                        <th className="px-4 py-3 text-zinc-300 font-medium">Último Check-in</th>
-                        <th className="px-4 py-3 text-zinc-300 font-medium">Registro</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-800">
-                      {attendanceData.professors.map(prof => {
-                        const sortedDates = Object.keys(prof.dailyCheckIns).sort().reverse();
-                        return (
-                          <tr key={prof._id} className="hover:bg-zinc-800/50 transition-colors">
-                            <td className="px-4 py-3 font-medium text-zinc-100 whitespace-nowrap">{prof.name}</td>
-                            <td className="px-4 py-3">{prof.totalDays} / {attendanceData.totalDays}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 h-2 bg-zinc-700 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${
-                                      prof.attendanceRate >= 70 ? 'bg-green-500' : prof.attendanceRate >= 40 ? 'bg-amber-500' : 'bg-red-500'
-                                    }`}
-                                    style={{ width: `${prof.attendanceRate}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-medium text-zinc-400">{prof.attendanceRate}%</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-xs text-zinc-400">
-                              {prof.lastCheckIn ? new Date(prof.lastCheckIn).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '—'}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex flex-wrap gap-1 max-w-xs">
-                                {sortedDates.slice(0, 15).map(date => (
-                                  <span
-                                    key={date}
-                                    className="text-xs px-1.5 py-0.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded"
-                                    title={new Date(prof.dailyCheckIns[date]).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
-                                  >
-                                    {date.slice(5)}
-                                  </span>
-                                ))}
-                                {sortedDates.length > 15 && (
-                                  <span className="text-xs text-zinc-500">+{sortedDates.length - 15} más</span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : attendanceData ? (
-              <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-8 text-center text-zinc-400">
-                No hay registros de asistencia en este período.
-              </div>
-            ) : null}
-          </div>
-        )}
+        {view === 'attendance' && <AttendanceToday />}
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">

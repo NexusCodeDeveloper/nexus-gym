@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/statCard/StatCard.jsx';
 import QuickAction from '../components/quickAction/QuickAction.jsx';
+import api from '../service/api.js';
 
 const HomePage = () => {
   const { user, logout } = useAuth();
@@ -18,7 +18,7 @@ const HomePage = () => {
     const fetchData = async () => {
       try {
         if (user?.role === 'superAdmin') {
-          const res = await axios.get('http://localhost:4000/api/super-admin/admins', { withCredentials: true });
+          const res = await api.get('/api/super-admin/admins');
           const admins = res.data || [];
           const expiring = admins.filter(a => {
             if (!a.licenseEndDate) return false;
@@ -34,15 +34,15 @@ const HomePage = () => {
           });
         } else if (user?.role === 'admin') {
           const [statsRes, attendanceRes] = await Promise.all([
-            axios.get('http://localhost:4000/api/profile/stats', { withCredentials: true }),
-            axios.get('http://localhost:4000/api/attendance/gym', { withCredentials: true }),
+            api.get('/api/profile/stats'),
+            api.get('/api/attendance/gym'),
           ]);
           setStats(statsRes.data);
           setProfAttendance(attendanceRes.data);
         } else if (user?.role === 'profesor') {
           const [routinesRes, alumnosRes] = await Promise.all([
-            axios.get('http://localhost:4000/api/routines/mis-rutinas', { withCredentials: true }),
-            axios.get('http://localhost:4000/api/auth/alumnos', { withCredentials: true }),
+            api.get('/api/routines/mis-rutinas'),
+            api.get('/api/auth/alumnos'),
           ]);
           setStats({
             routines: routinesRes.data?.length || 0,
@@ -51,7 +51,7 @@ const HomePage = () => {
             alumnosList: alumnosRes.data || [],
           });
         } else if (user?.role === 'alumno') {
-          const res = await axios.get('http://localhost:4000/api/routines/mis-rutinas', { withCredentials: true });
+          const res = await api.get('/api/routines/mis-rutinas');
           const routinesList = res.data || [];
           const totalExercises = routinesList.reduce((sum, r) =>
             sum + (r.days?.reduce((daySum, d) => daySum + (d.exercises?.length || 0), 0) || 0), 0);
