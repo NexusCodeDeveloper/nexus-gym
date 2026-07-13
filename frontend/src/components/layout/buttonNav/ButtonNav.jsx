@@ -9,6 +9,8 @@ const getNavItems = (chatDisabled) => [
   { path: '/chat', label: 'Chat IA', icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z', disabled: chatDisabled },
 ];
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,10 +19,10 @@ const BottomNav = () => {
   useEffect(() => {
     const checkChatStatus = async () => {
       try {
-        const res = await axios.get('http://localhost:4000/api/chat/status', { withCredentials: true });
+        const res = await axios.get(`${API_URL}/api/chat/status`, { withCredentials: true });
         setChatDisabled(!res.data.enabled);
       } catch {
-        setChatDisabled(true);
+        setChatDisabled(false);
       }
     };
     checkChatStatus();
