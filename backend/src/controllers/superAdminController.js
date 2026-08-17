@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Routine from '../models/Routine.js';
 import bcrypt from 'bcryptjs';
 
 export const getAdmins = async (req, res) => {
@@ -121,7 +122,15 @@ export const deleteAdmin = async (req, res) => {
     if (!admin) {
       return res.status(404).json({ message: 'Cliente no encontrado' });
     }
-    res.json({ message: 'Cliente eliminado correctamente' });
+
+    const gymId = admin._id;
+
+    await Promise.all([
+      User.deleteMany({ createdBy: gymId }),
+      Routine.deleteMany({ gymId }),
+    ]);
+
+    res.json({ message: 'Cliente y todos sus usuarios/rutinas eliminados correctamente' });
   } catch (error) {
     console.error('Error deleting admin:', error);
     res.status(500).json({ message: 'Error al eliminar el cliente' });
