@@ -6,9 +6,16 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, role, dni, createdBy, licenseStartDate, licenseEndDate } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "El usuario ya existe con ese email" });
+    if (createdBy) {
+      const existingDni = await User.findOne({ dni, createdBy });
+      if (existingDni) {
+        return res.status(400).json({ message: "El DNI ya se encuentra registrado en tu gimnasio" });
+      }
+    } else {
+      const userExists = await User.findOne({ email });
+      if (userExists) {
+        return res.status(400).json({ message: "El usuario ya existe con ese email" });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -41,16 +48,19 @@ export const logout = (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, dni, password } = req.body;
 
-    const userFound = await User.findOne({ email });
+    const userFound = email
+      ? await User.findOne({ email })
+      : await User.findOne({ dni });
+
     if (!userFound) {
-      return res.status(400).json({ message: "Email o contraseña incorrectos" });
+      return res.status(400).json({ message: "Credenciales incorrectos" });
     }
 
     const isMatch = await bcrypt.compare(password, userFound.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Email o contraseña incorrectos" });
+      return res.status(400).json({ message: "Credenciales incorrectos" });
     }
 
     if (userFound.role !== 'superAdmin') {
@@ -209,7 +219,7 @@ export const getAlumnos = async (req, res) => {
 
     const gymId = requester.role === "admin" ? requester._id : requester.createdBy;
 
-   const alumnos = await User.find({ role: "alumno", createdBy: gymId }).select("name email _id licenseStartDate licenseEndDate isActive");;
+   const alumnos = await User.find({ role: "alumno", createdBy: gymId }).select("name email _id licenseStartDate licenseEndDate isActive");
 
     res.status(200).json(alumnos);
   } catch (error) {
