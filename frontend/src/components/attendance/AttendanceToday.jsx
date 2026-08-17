@@ -2,20 +2,35 @@ import React, { useState, useEffect } from 'react';
 import api from '../../service/api.js';
 import { showErrorToast } from '../../utils/swal.js';
 
+const getTodayLocal = () => {
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+  return formatter.format(new Date());
+};
+
 const ProfessorDetail = ({ professor, onClose }) => {
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const fetchHistory = async () => {
+      const endDate = getTodayLocal();
+      const start = new Date();
+      start.setDate(start.getDate() - 90);
+      const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(start);
 
-    api.get('/api/attendance/gym/history', {
-      params: { startDate, endDate },
-    })
-      .then(res => setHistory(res.data))
-      .catch(() => showErrorToast('Error al cargar historial'))
-      .finally(() => setLoading(false));
+      try {
+        const res = await api.get('/api/attendance/gym/history', {
+          params: { startDate, endDate },
+        });
+        setHistory(res.data);
+      } catch {
+        showErrorToast('Error al cargar historial');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
   }, []);
 
   const profHistory = history?.professors?.find(p => p._id === professor._id);
@@ -85,7 +100,7 @@ const AttendanceToday = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState('');
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayLocal());
 
   const fetchAttendance = async (date) => {
     setLoading(true);
@@ -100,7 +115,7 @@ const AttendanceToday = () => {
     }
   };
 
-  useEffect(() => { fetchAttendance(selectedDate); }, []);
+  useEffect(() => { fetchAttendance(selectedDate); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDateChange = (e) => {
     const newDate = e.target.value;
@@ -118,7 +133,7 @@ const AttendanceToday = () => {
     );
   }) || [];
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayLocal();
   const isToday = selectedDate === todayStr;
 
   const present = filteredProfessors.filter(p => p.checkedInToday);
