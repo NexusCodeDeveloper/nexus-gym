@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Types } from 'mongoose';
 
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -20,14 +19,4 @@ export const updateAdminSchema = z.object({
   licenseEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato YYYY-MM-DD requerido').optional(),
 });
 
-export const validateParams = (schema) => {
-  return (req, res, next) => {
-    const result = schema.safeParse(req.params);
-    if (!result.success) {
-      const errors = result.error.flatten().fieldErrors;
-      return res.status(400).json({ message: 'Error de validación', errors });
-    }
-    req.validatedParams = result.data;
-    next();
-  };
-};
+
