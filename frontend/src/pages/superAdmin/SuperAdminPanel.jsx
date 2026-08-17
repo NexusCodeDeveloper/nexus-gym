@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../service/api.js';
 import { z } from 'zod';
 import { showSuccessToast, showErrorToast, showDeleteConfirmDialog, showPositiveConfirmDialog } from '../../utils/swal';
+import { toDateInputValue } from '../../utils/date';
 
 const getToday = () => {
   const today = new Date();
@@ -176,14 +177,10 @@ const SuperAdminPanel = () => {
   };
 
   const openEditModal = (admin) => {
-    const formatDateForInput = (dateString) => {
-      if (!dateString) return '';
-      return new Date(dateString).toISOString().split('T')[0];
-    };
     setEditingAdmin({
       ...admin,
-      licenseStartDate: formatDateForInput(admin.licenseStartDate),
-      licenseEndDate: formatDateForInput(admin.licenseEndDate)
+      licenseStartDate: toDateInputValue(admin.licenseStartDate),
+      licenseEndDate: toDateInputValue(admin.licenseEndDate)
     });
     setEditErrors({});
     setIsEditModalOpen(true);
@@ -206,13 +203,18 @@ const SuperAdminPanel = () => {
     }
 
     try {
-      await api.put(`/api/super-admin/admins/${editingAdmin._id}`, editingAdmin);
+      const payload = {
+        name: editingAdmin.name,
+        licenseStartDate: editingAdmin.licenseStartDate,
+        licenseEndDate: editingAdmin.licenseEndDate,
+      };
+      await api.put(`/api/super-admin/admins/${editingAdmin._id}`, payload);
       setIsEditModalOpen(false);
       setEditingAdmin(null);
       showSuccessToast('Datos del cliente actualizados');
       fetchAdmins();
     } catch (error) {
-      showErrorToast('Error al actualizar los datos');
+      showErrorToast(error.response?.data?.message || 'Error al actualizar los datos');
     }
   };
 
