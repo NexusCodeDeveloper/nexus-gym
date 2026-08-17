@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { useAuth } from "../../context/AuthContext";
 import { showSuccessToast, showErrorToast, showConfirmDialog, showDeleteConfirmDialog } from "../../utils/swal";
+import { toDateInputValue } from "../../utils/date";
 import AttendanceToday from "../../components/attendance/AttendanceToday.jsx";
 import api from "../../service/api.js";
 
@@ -50,7 +51,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const response = await api.get("/api/admin/users");
-      setUsers(response.data);
+      setUsers(response.data?.data || response.data);
     } catch (error) {
       console.error("Error fetching users", error);
     } finally {
@@ -114,12 +115,8 @@ const UserManagement = () => {
   const handleEditClick = (user) => {
     setEditingUser(user);
     setEditFormData({
-      licenseStartDate: user.licenseStartDate
-        ? new Date(user.licenseStartDate).toISOString().split("T")[0]
-        : "",
-      licenseEndDate: user.licenseEndDate
-        ? new Date(user.licenseEndDate).toISOString().split("T")[0]
-        : "",
+      licenseStartDate: toDateInputValue(user.licenseStartDate),
+      licenseEndDate: toDateInputValue(user.licenseEndDate),
     });
     setIsEditModalOpen(true);
     setEditErrors({});
@@ -302,9 +299,7 @@ const UserManagement = () => {
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">{user.role}</td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">
                         {user.licenseEndDate
-                          ? new Date(user.licenseEndDate)
-                              .toISOString()
-                              .split("T")[0]
+                          ? toDateInputValue(user.licenseEndDate)
                           : "N/A"}
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4">
@@ -383,7 +378,7 @@ const UserManagement = () => {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     className={`w-full px-4 py-2 bg-zinc-800 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-100 ${
-                      errors.name ? "border-red-500" : "border-zinc-200"
+                      errors.name ? "border-red-500" : "border-zinc-700"
                     }`}
                   />
                   {errors.name && (
@@ -402,7 +397,7 @@ const UserManagement = () => {
                       setFormData({ ...formData, dni: e.target.value })
                     }
                     className={`w-full px-4 py-2 bg-zinc-800 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-100 ${
-                      errors.dni ? "border-red-500" : "border-zinc-200"
+                      errors.dni ? "border-red-500" : "border-zinc-700"
                     }`}
                   />
                   {errors.dni && (
@@ -420,7 +415,7 @@ const UserManagement = () => {
                       setFormData({ ...formData, role: e.target.value })
                     }
                     className={`w-full px-4 py-2 bg-zinc-800 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-300 ${
-                      errors.role ? "border-red-500" : "border-zinc-200"
+                      errors.role ? "border-red-500" : "border-zinc-700"
                     }`}
                   >
                     <option value="alumno">Alumno</option>
