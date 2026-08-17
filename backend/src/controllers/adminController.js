@@ -1,19 +1,23 @@
-  import User from "../models/User.js";
+import User from "../models/User.js";
 
-  export const getUsers = async (req, res) => {
-    try {
-      const adminId = req.user.id;
-      const users = await User.find({ createdBy: adminId });
-      res.status(200).json(users);
-    } catch (error) {
-      res.status(500).json({ message: "Error al obtener usuarios" });
+export const getUsers = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const filter = { createdBy: adminId };
+    if (req.query.role) {
+      filter.role = req.query.role;
     }
-  };
+    const users = await User.find(filter);
+    res.status(200).json({ message: "Usuarios obtenidos correctamente", data: users });
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener usuarios" });
+  }
+};
 
-  export const updateUserLicense = async (req, res) => {
+export const updateUserLicense = async (req, res) => {
   try {
     const { id } = req.params;
-    const { licenseStartDate, licenseEndDate } = req.body;
+    const { licenseStartDate, licenseEndDate } = req.validatedBody;
     const adminId = req.user.id;
 
     const userToUpdate = await User.findById(id);
@@ -22,7 +26,7 @@
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    if (userToUpdate.createdBy.toString() !== adminId) {
+    if (!userToUpdate.createdBy || userToUpdate.createdBy.toString() !== adminId) {
       return res.status(403).json({ message: "No tienes permiso para actualizar este usuario" });
     }
 
@@ -31,14 +35,14 @@
 
     await userToUpdate.save();
 
-    res.status(200).json({ message: "Licencia de usuario actualizada correctamente", user: userToUpdate });
+    res.status(200).json({ message: "Licencia de usuario actualizada correctamente", data: userToUpdate });
   } catch (error) {
     console.error("Error al actualizar la licencia del usuario:", error);
     res.status(500).json({ message: "Error al actualizar la licencia del usuario" });
   }
-  };
+};
 
-export const suspendStudent = async (req, res) => {
+export const suspendUser = async (req, res) => {
   try {
     const { id } = req.params;
     const adminId = req.user.id;
@@ -49,7 +53,7 @@ export const suspendStudent = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    if (userToSuspend.createdBy.toString() !== adminId) {
+    if (!userToSuspend.createdBy || userToSuspend.createdBy.toString() !== adminId) {
       return res.status(403).json({ message: "No tienes permiso para suspender este usuario" });
     }
 
@@ -63,7 +67,7 @@ export const suspendStudent = async (req, res) => {
   }
 };
 
-export const deleteStudent = async (req, res) => {
+export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     const adminId = req.user.id;
@@ -74,7 +78,7 @@ export const deleteStudent = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    if (userToDelete.createdBy.toString() !== adminId) {
+    if (!userToDelete.createdBy || userToDelete.createdBy.toString() !== adminId) {
       return res.status(403).json({ message: "No tienes permiso para eliminar este usuario" });
     }
 
