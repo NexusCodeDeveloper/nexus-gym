@@ -60,6 +60,11 @@ export const deleteVideo = async (req, res) => {
       return res.status(404).json({ message: 'Video no encontrado' });
     }
 
+    const requester = await User.findById(req.user.id);
+    if (requester.role !== 'superAdmin' && media.gymId.toString() !== requester._id.toString() && media.gymId.toString() !== requester.createdBy?.toString()) {
+      return res.status(403).json({ message: 'No tienes permiso para eliminar este video' });
+    }
+
     await cloudinary.uploader.destroy(media.publicId, { resource_type: 'video' });
     await ExerciseMedia.findByIdAndDelete(req.params.id);
 
