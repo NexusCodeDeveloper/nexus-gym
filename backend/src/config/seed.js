@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 export const seedTestUser = async () => {
   try {
@@ -8,26 +9,41 @@ export const seedTestUser = async () => {
       console.log("[SEED] Colección limpia, sin índices viejos.");
     }
 
+    const salt = await bcrypt.genSalt(10);
+    const defaultPassword = await bcrypt.hash("123456", salt);
+
     const testUsers = [
       {
         name: "Cuenta super admin",
-        dni: "10000000", 
+        dni: "10000000",
+        email: "10000000@nexusgym.com",
+        password: defaultPassword,
         role: "superAdmin",
+        isActive: true,
       },
       {
         name: "Cuenta Admin",
-        dni: "00000000", 
+        dni: "00000000",
+        email: "00000000@nexusgym.com",
+        password: defaultPassword,
         role: "admin",
+        isActive: true,
       },
       {
         name: "Cuenta Empleado",
-        dni: "11111111", 
+        dni: "11111111",
+        email: "11111111@nexusgym.com",
+        password: defaultPassword,
         role: "profesor",
+        isActive: true,
       },
       {
         name: "Cuenta alumno",
-        dni: "22222222", 
+        dni: "22222222",
+        email: "22222222@nexusgym.com",
+        password: defaultPassword,
         role: "alumno",
+        isActive: true,
       }
     ];
 
@@ -41,10 +57,12 @@ export const seedTestUser = async () => {
         await newUser.save();
         console.log(`[SEED] ✅ Creado: ${userData.name} | Rol: ${userData.role} | DNI: ${userData.dni}`);
       } else {
-        if (userExists.role !== userData.role) {
+        if (userExists.role !== userData.role || !userExists.password || !userExists.email) {
           userExists.role = userData.role;
+          userExists.password = userData.password;
+          userExists.email = userData.email;
           await userExists.save();
-          console.log(`[SEED] 🔄 Actualizado rol de: ${userData.name} a ${userData.role}`);
+          console.log(`[SEED] 🔄 Actualizado: ${userData.name} (password/email/role)`);
         } else {
           console.log(`[SEED] User hardcodeado OK: ${userData.name} (${userData.role})`);
         }

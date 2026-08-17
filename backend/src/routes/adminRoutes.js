@@ -1,13 +1,17 @@
 import express from "express";
-import { getUsers, updateUserLicense, suspendStudent, deleteStudent } from "../controllers/adminController.js";
+import { getUsers, updateUserLicense, suspendUser, deleteUser } from "../controllers/adminController.js";
 import { validateToken } from "../middlewares/validateToken.js";
+import { requireRole } from "../middlewares/roleGuard.js";
+import { validate } from "../middlewares/validate.js";
+import { updateLicenseSchema } from "../validators/adminValidators.js";
 
 const router = express.Router();
 
-// Todas las rutas acá requieren estar logueado como admin
-router.get("/users", validateToken, getUsers);
-router.put("/users/:id/license", validateToken, updateUserLicense);
-router.put("/users/:id/suspend", validateToken, suspendStudent);
-router.delete("/users/:id", validateToken, deleteStudent);
+router.use(validateToken, requireRole('admin'));
+
+router.get("/users", getUsers);
+router.put("/users/:id/license", validate(updateLicenseSchema), updateUserLicense);
+router.put("/users/:id/suspend", suspendUser);
+router.delete("/users/:id", deleteUser);
 
 export default router;

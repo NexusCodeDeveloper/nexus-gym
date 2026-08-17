@@ -6,9 +6,16 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, role, dni, createdBy, licenseStartDate, licenseEndDate } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "El usuario ya existe con ese email" });
+    if (createdBy) {
+      const existingDni = await User.findOne({ dni, createdBy });
+      if (existingDni) {
+        return res.status(400).json({ message: "El DNI ya se encuentra registrado en tu gimnasio" });
+      }
+    } else {
+      const userExists = await User.findOne({ email });
+      if (userExists) {
+        return res.status(400).json({ message: "El usuario ya existe con ese email" });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -41,16 +48,35 @@ export const logout = (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, dni, password } = req.body;
 
-    const userFound = await User.findOne({ email });
+    const userFound = email
+      ? await User.findOne({ email })
+      : await User.findOne({ dni });
+
     if (!userFound) {
-      return res.status(400).json({ message: "Email o contraseña incorrectos" });
+      return res.status(400).json({ message: "Credenciales incorrectos" });
     }
 
     const isMatch = await bcrypt.compare(password, userFound.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Email o contraseña incorrectos" });
+      return res.status(400).json({ message: "Credenciales incorrectos" });
+    }
+
+    if (userFound.role !== 'superAdmin') {
+      if (!userFound.isActive) {
+        return res.status(403).json({ message: "Tu cuenta ha sido suspendida. Comunicate con el administrador." });
+      }
+
+      if (userFound.licenseEndDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(userFound.licenseEndDate);
+        end.setHours(0, 0, 0, 0);
+        if (end < today) {
+          return res.status(403).json({ message: "Tu licencia ha vencido. Comunicate con el administrador para renovarla." });
+        }
+      }
     }
 
     const exactRole = userFound.role;
@@ -90,15 +116,34 @@ export const profile = async (req, res) => {
       return res.status(400).json({ message: "Usuario no encontrado" });
     }
 
+    if (userFound.role !== 'superAdmin') {
+      if (!userFound.isActive) {
+        res.cookie("token", "", { expires: new Date(0) });
+        return res.status(403).json({ message: "Cuenta suspendida" });
+      }
+
+      if (userFound.licenseEndDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(userFound.licenseEndDate);
+        end.setHours(0, 0, 0, 0);
+        if (end < today) {
+          res.cookie("token", "", { expires: new Date(0) });
+          return res.status(403).json({ message: "Licencia vencida" });
+        }
+      }
+    }
+
     return res.json({
       id: userFound._id,
       name: userFound.name,
+      dni: userFound.dni,
       email: userFound.email,
       role: userFound.role,
       isActive: userFound.isActive,
       licenseStartDate: userFound.licenseStartDate,
       licenseEndDate: userFound.licenseEndDate,
-      metrics: userFound.metrics, // 🔥 SOLUCIÓN: El eslabón perdido agregado acá
+      metrics: userFound.metrics,
     });
   } catch (error) {
     console.error("Error en profile", error.message);
@@ -116,6 +161,22 @@ export const verifyDni = async (req, res) => {
     
     if (!userFound) {
       return res.status(404).json({ message: "El DNI ingresado no tiene acceso. Consulte en recepcion" });
+    }
+
+    if (userFound.role !== 'superAdmin') {
+      if (!userFound.isActive) {
+        return res.status(403).json({ message: "Tu cuenta ha sido suspendida. Comunicate con el administrador." });
+      }
+
+      if (userFound.licenseEndDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(userFound.licenseEndDate);
+        end.setHours(0, 0, 0, 0);
+        if (end < today) {
+          return res.status(403).json({ message: "Tu licencia ha vencido. Comunicate con el administrador para renovarla." });
+        }
+      }
     }
 
     const exactRole = userFound.role;
@@ -158,7 +219,7 @@ export const getAlumnos = async (req, res) => {
 
     const gymId = requester.role === "admin" ? requester._id : requester.createdBy;
 
-   const alumnos = await User.find({ role: "alumno", createdBy: gymId }).select("name email _id licenseStartDate licenseEndDate isActive");;
+   const alumnos = await User.find({ role: "alumno", createdBy: gymId }).select("name email _id licenseStartDate licenseEndDate isActive");
 
     res.status(200).json(alumnos);
   } catch (error) {

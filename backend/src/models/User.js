@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    chatbotEnabled: {
+      type: Boolean,
+      default: true,
+    },
     licenseStartDate: {
       type: Date,
     },

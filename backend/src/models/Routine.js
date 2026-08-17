@@ -4,6 +4,7 @@ const exerciseSchema = new mongoose.Schema({
   name: { type: String, required: true },
   sets: { type: String },
   reps: { type: String },
+  rest: { type: String },
   videoUrl: { type: String }
 });
 
@@ -29,10 +30,13 @@ const routineSchema = new mongoose.Schema(
       ref: 'User', 
       required: true 
     },
-    studentId: { 
+    students: [{ 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User',
-      required: true 
+      ref: 'User'
+    }],
+    assignedToAll: { 
+      type: Boolean, 
+      default: false 
     },
 
     gymId: { 

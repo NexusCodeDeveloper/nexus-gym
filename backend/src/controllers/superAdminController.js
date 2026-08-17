@@ -1,115 +1,162 @@
-import User from "../models/User.js";
-import bcrypt from "bcryptjs";
+import User from '../models/User.js';
+import Routine from '../models/Routine.js';
+import bcrypt from 'bcryptjs';
 
-// Obtener todos los clientes (gimnasios/admins)
 export const getAdmins = async (req, res) => {
   try {
-    const admins = await User.find({ role: "admin" }).sort({ createdAt: -1 });
-    res.status(200).json(admins);
+    const admins = await User.find({ role: 'admin' })
+      .select('-password')
+      .sort({ createdAt: -1 });
+    res.json({ message: 'Administradores obtenidos correctamente', data: admins });
   } catch (error) {
-    console.error("Error fetching admins:", error);
-    res.status(500).json({ message: "Error al obtener los administradores" });
+    console.error('Error fetching admins:', error);
+    res.status(500).json({ message: 'Error al obtener los administradores' });
   }
 };
 
-// Alternar el acceso a la plataforma (Activo/Suspendido)
 export const toggleAdminAccess = async (req, res) => {
   try {
-    const { id } = req.params;
-    const admin = await User.findById(id);
-    
+    const admin = await User.findOne({ _id: req.validatedParams.id, role: 'admin' });
     if (!admin) {
-      return res.status(404).json({ message: "Administrador no encontrado" });
+      return res.status(404).json({ message: 'Administrador no encontrado' });
     }
 
     admin.isActive = !admin.isActive;
     await admin.save();
 
-    res.status(200).json({ 
-      message: "Estado de acceso actualizado", 
-      isActive: admin.isActive 
+    res.json({
+      message: `Acceso ${admin.isActive ? 'activado' : 'suspendido'} correctamente`,
+      data: { isActive: admin.isActive },
     });
   } catch (error) {
-    console.error("Error toggling access:", error);
-    res.status(500).json({ message: "Error al actualizar el acceso" });
+    console.error('Error toggling access:', error);
+    res.status(500).json({ message: 'Error al actualizar el acceso' });
   }
 };
 
-// Crear nuevo Cliente Admin
 export const createAdmin = async (req, res) => {
   try {
-    const { name, dni, licenseStartDate, licenseEndDate } = req.body;
+    const { name, dni, licenseStartDate, licenseEndDate } = req.validatedBody;
+
     const existingUser = await User.findOne({ dni });
     if (existingUser) {
-      return res.status(400).json({ message: "El DNI ya se encuentra registrado" });
+      return res.status(400).json({ message: 'El DNI ya se encuentra registrado' });
     }
 
-    // ENCRIPTAMOS EL DNI PARA QUE DEJE LOGUEARSE DESPUÉS
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(dni, salt);
 
-    const newAdmin = new User({
+    const newAdmin = await User.create({
       name,
       dni,
-      password: hashedPassword, 
-      role: "admin", 
-      isActive: true, 
+      password: hashedPassword,
+      role: 'admin',
+      isActive: true,
       licenseStartDate,
       licenseEndDate,
     });
 
-    const savedAdmin = await newAdmin.save();
-    res.status(201).json(savedAdmin);
+    const { password, ...safeAdmin } = newAdmin.toObject();
+    res.status(201).json({ message: 'Cliente creado correctamente', data: safeAdmin });
   } catch (error) {
-    console.error("Error creating admin:", error);
-    res.status(500).json({ message: error.message || "Error creating client" });
+    console.error('Error creating admin:', error);
+    res.status(500).json({ message: 'Error al crear el cliente' });
   }
 };
 
-// Renovar Licencia
 export const renewAdmin = async (req, res) => {
   try {
-    const admin = await User.findById(req.params.id);
-    if (!admin) return res.status(404).json({ message: "Client not found" });
+    const admin = await User.findOne({ _id: req.validatedParams.id, role: 'admin' });
+    if (!admin) {
+      return res.status(404).json({ message: 'Cliente no encontrado' });
+    }
 
     const today = new Date();
-    const currentEndDate = new Date(admin.licenseEndDate);
-    
-    const baseDate = currentEndDate > today ? currentEndDate : today;
-    baseDate.setMonth(baseDate.getMonth() + 1);
+    today.setHours(0, 0, 0, 0);
+    const currentEnd = new Date(admin.licenseEndDate);
+    currentEnd.setHours(0, 0, 0, 0);
 
-    admin.licenseEndDate = baseDate;
-    admin.isActive = true; 
-    
+    const baseDate = currentEnd > today ? currentEnd : today;
+    const newEnd = new Date(baseDate);
+    newEnd.setMonth(newEnd.getMonth() + 1);
+
+    if (newEnd.getDate() !== baseDate.getDate()) {
+      newEnd.setDate(0);
+    }
+
+    admin.licenseEndDate = newEnd;
+    admin.isActive = true;
     await admin.save();
-    res.status(200).json(admin);
+
+    const { password, ...safeAdmin } = admin.toObject();
+    res.json({ message: 'Licencia renovada correctamente', data: safeAdmin });
   } catch (error) {
-    console.error("Error renewing:", error);
-    res.status(500).json({ message: "Error renewing client" });
+    console.error('Error renewing:', error);
+    res.status(500).json({ message: 'Error al renovar la licencia' });
   }
 };
 
-// Eliminar Cliente
+export const toggleChatbot = async (req, res) => {
+  try {
+    const admin = await User.findOne({ _id: req.validatedParams.id, role: 'admin' });
+    if (!admin) {
+      return res.status(404).json({ message: 'Gimnasio no encontrado' });
+    }
+
+    admin.chatbotEnabled = !admin.chatbotEnabled;
+    await admin.save();
+
+    res.json({
+      message: admin.chatbotEnabled ? 'Chatbot habilitado' : 'Chatbot deshabilitado',
+      data: { chatbotEnabled: admin.chatbotEnabled },
+    });
+  } catch (error) {
+    console.error('Error toggling chatbot:', error);
+    res.status(500).json({ message: 'Error al actualizar el chatbot' });
+  }
+};
+
 export const deleteAdmin = async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Client deleted successfully" });
+    const admin = await User.findOneAndDelete({ _id: req.validatedParams.id, role: 'admin' });
+    if (!admin) {
+      return res.status(404).json({ message: 'Cliente no encontrado' });
+    }
+
+    const gymId = admin._id;
+
+    await Promise.all([
+      User.deleteMany({ createdBy: gymId }),
+      Routine.deleteMany({ gymId }),
+    ]);
+
+    res.json({ message: 'Cliente y todos sus usuarios/rutinas eliminados correctamente' });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting client" });
+    console.error('Error deleting admin:', error);
+    res.status(500).json({ message: 'Error al eliminar el cliente' });
   }
 };
 
-// Editar datos
 export const updateAdmin = async (req, res) => {
   try {
-    const { name, licenseStartDate, licenseEndDate } = req.body;
-    const updatedAdmin = await User.findByIdAndUpdate(
-      req.params.id,
-      { name, licenseStartDate, licenseEndDate },
+    const updateFields = req.validatedBody;
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ message: 'No hay campos para actualizar' });
+    }
+
+    const updatedAdmin = await User.findOneAndUpdate(
+      { _id: req.validatedParams.id, role: 'admin' },
+      updateFields,
       { new: true }
-    );
-    res.status(200).json(updatedAdmin);
+    ).select('-password');
+
+    if (!updatedAdmin) {
+      return res.status(404).json({ message: 'Cliente no encontrado' });
+    }
+
+    res.json({ message: 'Cliente actualizado correctamente', data: updatedAdmin });
   } catch (error) {
-    res.status(500).json({ message: "Error updating client" });
+    console.error('Error updating admin:', error);
+    res.status(500).json({ message: 'Error al actualizar el cliente' });
   }
 };

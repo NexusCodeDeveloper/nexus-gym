@@ -1,26 +1,7 @@
 import { useAuth } from "../context/AuthContext.jsx";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 function ProfilePage() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await axios.post(
-        "http://localhost:4000/api/auth/logout",
-        {},
-        {
-          withCredentials: true,
-        },
-      );
-      logout();
-      navigate("/login");
-    } catch (error) {
-      console.error("Error al cerrar sesión", error);
-    }
-  };
 
   return (
     <div className="bg-zinc-800 max-w-md w-full p-10 rounded-md shadow-lg text-center">
@@ -39,7 +20,7 @@ function ProfilePage() {
       </div>
 
       <button
-        onClick={handleLogout}
+        onClick={logout}
         className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition-colors w-full"
       >
         Cerrar Sesión

@@ -9,20 +9,13 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   
   if (!user) return <div className="min-h-screen flex items-center justify-center text-zinc-500">Cargando perfil...</div>;
-
   return (
-    <div className="min-h-screen bg-[#fafafa] p-4 sm:p-8 font-sans">
-      <div className="max-w-5xl mx-auto spdocker compose upace-y-6">
-        <div className="flex justify-between items-center mb-6">
-          <button 
-            onClick={() => navigate('/')} 
-            className="flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
-          >
-            <span>←</span> Volver al Inicio
-          </button>
+    <div className="min-h-screen bg-zinc-950 text-zinc-300 p-4 sm:p-8 font-sans">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex justify-end items-center mb-6">
           <button 
             onClick={logout} 
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl transition-all shadow-sm"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all"
           >
             Cerrar Sesión
           </button>
