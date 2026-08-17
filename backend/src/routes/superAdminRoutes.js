@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { getAdmins, toggleAdminAccess, createAdmin, renewAdmin, deleteAdmin, updateAdmin, toggleChatbot } from '../controllers/superAdminController.js';
 import { validateToken } from '../middlewares/validateToken.js';
 import { requireRole } from '../middlewares/roleGuard.js';
-import { createAdminSchema, updateAdminSchema, idParamSchema, validateParams } from '../validators/superAdminValidators.js';
-import { validate } from '../validators/attendanceValidators.js';
+import { validate, validateParams } from '../middlewares/validate.js';
+import { createAdminSchema, updateAdminSchema, idParamSchema } from '../validators/superAdminValidators.js';
 
 const router = Router();
 
