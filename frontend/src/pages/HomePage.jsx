@@ -19,7 +19,7 @@ const HomePage = () => {
       try {
         if (user?.role === 'superAdmin') {
           const res = await api.get('/api/super-admin/admins');
-          const admins = res.data || [];
+          const admins = res.data?.data || res.data || [];
           const expiring = admins.filter(a => {
             if (!a.licenseEndDate) return false;
             const daysLeft = Math.ceil((new Date(a.licenseEndDate) - today) / (1000 * 60 * 60 * 24));
