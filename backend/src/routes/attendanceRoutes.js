@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { checkin, checkout, myAttendance, gymAttendance, gymAttendanceHistory } from '../controllers/attendanceController.js';
 import { validateToken } from '../middlewares/validateToken.js';
-import { checkinSchema, checkoutSchema, dateRangeSchema, validate, validateQuery } from '../validators/attendanceValidators.js';
+import { checkinSchema, checkoutSchema, dateRangeSchema } from '../validators/attendanceValidators.js';
+import { validate, validateQuery } from '../middlewares/validate.js';
 import { checkinLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
