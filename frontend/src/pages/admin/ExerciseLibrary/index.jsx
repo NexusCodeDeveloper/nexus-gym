@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { showSuccessToast, showErrorToast, showDeleteConfirmDialog } from '../../../utils/swal';
+import api from '../../../service/api.js';
 
 const CATEGORIES = ['Pecho', 'Espalda', 'Piernas', 'Hombros', 'Brazos', 'Core', 'Cardio', 'Full Body', 'General'];
 
@@ -11,7 +11,8 @@ const ExerciseLibrary = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [filter, setFilter] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   const [uploadData, setUploadData] = useState({
     name: '',
@@ -22,8 +23,8 @@ const ExerciseLibrary = () => {
 
   const fetchVideos = async () => {
     try {
-      const res = await axios.get('http://localhost:4000/api/exercise-media', { withCredentials: true });
-      setVideos(res.data);
+      const res = await api.get('/api/exercise-media');
+      setVideos(res.data?.data || res.data);
     } catch (err) {
       console.error('Error fetching videos:', err);
     } finally {
@@ -48,8 +49,7 @@ const ExerciseLibrary = () => {
     formData.append('category', uploadData.category);
 
     try {
-      await axios.post('http://localhost:4000/api/exercise-media/upload', formData, {
-        withCredentials: true,
+      await api.post('/api/exercise-media/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       showSuccessToast('Video subido correctamente');
@@ -70,18 +70,19 @@ const ExerciseLibrary = () => {
     if (!confirmed) return;
 
     try {
-      await axios.delete(`http://localhost:4000/api/exercise-media/${id}`, { withCredentials: true });
+      await api.delete(`/api/exercise-media/${id}`);
       showSuccessToast('Video eliminado');
-      setVideos(videos.filter(v => v._id !== id));
+      fetchVideos();
     } catch (err) {
-      showErrorToast('Error al eliminar el video');
+      showErrorToast(err.response?.data?.message || 'Error al eliminar el video');
     }
   };
 
-  const filtered = videos.filter(v =>
-    v.name.toLowerCase().includes(filter.toLowerCase()) ||
-    v.category.toLowerCase().includes(filter.toLowerCase())
-  );
+  const filtered = videos.filter(v => {
+    const matchesSearch = !searchText || v.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchesCategory = !categoryFilter || v.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 p-4 sm:p-8">
@@ -150,21 +151,21 @@ const ExerciseLibrary = () => {
         </form>
 
         <div className="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Buscar por nombre o categoría..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="flex-1 p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Todas las categorías</option>
-            {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-          </select>
+            <input
+              type="text"
+              placeholder="Filtrar por nombre o categoría..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="flex-1 p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Todas las categorías</option>
+              {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
         </div>
 
         {loading ? (
