@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { chat, history, clearHistory, chatStatus } from '../controllers/chatController.js';
 import { validateToken } from '../middlewares/validateToken.js';
 import { chatLimiter } from '../middlewares/rateLimiter.js';
-import { validate, messageSchema } from '../validators/chatValidators.js';
+import { messageSchema } from '../validators/chatValidators.js';
+import { validate } from '../middlewares/validate.js';
 
 const router = Router();
 
