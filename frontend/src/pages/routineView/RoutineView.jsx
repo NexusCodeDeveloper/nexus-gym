@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../service/api.js';
 import { showSuccessToast, showErrorToast } from '../../utils/swal';
 
 const RoutineView = () => {
@@ -17,32 +17,36 @@ const RoutineView = () => {
   const [sessionActive, setSessionActive] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const intervalRef = useRef(null);
+  const celebrationTimerRef = useRef(null);
+  const saveTimerRef = useRef(null);
 
   useEffect(() => {
     const fetchRoutine = async () => {
       try {
-        const response = await axios.get(`http://localhost:4000/api/routines/${id}`, {
-          withCredentials: true
-        });
-        setRoutine(response.data);
+        const response = await api.get(`/api/routines/${id}`);
+        setRoutine(response.data.data);
       } catch (error) {
-        console.error('Error al cargar la rutina', error);
-        navigate(-1);
+        console.error('Error loading routine', error);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
     };
     fetchRoutine();
-  }, [id, navigate]);
+  }, [id]);
+
+  useEffect(() => () => {
+    if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+  }, []);
 
   useEffect(() => {
     const fetchProgress = async () => {
       try {
-        const res = await axios.get(`http://localhost:4000/api/routine-progress/${id}`, {
-          withCredentials: true
-        });
-        const progress = res.data;
+        const res = await api.get(`/api/routine-progress/${id}`);
+        const progress = res.data.data;
         if (progress?.days?.length > 0) {
           const map = {};
           progress.days.forEach(d => {
@@ -52,7 +56,7 @@ const RoutineView = () => {
           });
           setCompletedExercises(map);
         }
-      } catch (err) {
+      } catch {
         // si no hay progreso aún, ignorar
       }
     };
@@ -62,20 +66,20 @@ const RoutineView = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await axios.get('http://localhost:4000/api/workout/active', { withCredentials: true });
-        if (res.data.data) {
+        const res = await api.get('/api/workout/active');
+        if (res.data.data?.routineId?.toString() === id) {
           setSessionActive(true);
           const start = new Date(res.data.data.startTime);
           setElapsed(Math.floor((Date.now() - start) / 1000));
         }
-      } catch (err) {
+      } catch {
         // ignore
       } finally {
         setSessionLoading(false);
       }
     };
     checkSession();
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     if (sessionActive) {
@@ -102,7 +106,7 @@ const RoutineView = () => {
 
   const startWorkout = async () => {
     try {
-      await axios.post('http://localhost:4000/api/workout/start', { routineId: id }, { withCredentials: true });
+      await api.post('/api/workout/start', { routineId: id });
       setSessionActive(true);
       setElapsed(0);
       showSuccessToast('Entrenamiento iniciado');
@@ -113,7 +117,7 @@ const RoutineView = () => {
 
   const stopWorkout = async () => {
     try {
-      const res = await axios.patch('http://localhost:4000/api/workout/stop', {}, { withCredentials: true });
+      const res = await api.patch('/api/workout/stop', {});
       setSessionActive(false);
       const mins = res.data.data.duration;
       showSuccessToast(`Entrenamiento finalizado — ${mins} minutos`);
@@ -122,23 +126,26 @@ const RoutineView = () => {
     }
   };
 
-  const saveDayProgress = useCallback(async (dayIndex, exerciseMap) => {
+  const saveDayProgress = useCallback((dayIndex, exerciseMap) => {
     setSaving(true);
-    try {
-      const completedExercisesList = [];
-      const dayExs = routine?.days?.[dayIndex]?.exercises || [];
-      dayExs.forEach((_, i) => {
-        if (exerciseMap[`${dayIndex}-${i}`]) completedExercisesList.push(i);
-      });
-      await axios.put(`http://localhost:4000/api/routine-progress/${id}/day`, {
-        dayIndex,
-        completedExercises: completedExercisesList
-      }, { withCredentials: true });
-    } catch (err) {
-      console.error('Error al guardar progreso', err);
-    } finally {
-      setSaving(false);
-    }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const completedExercisesList = [];
+        const dayExs = routine?.days?.[dayIndex]?.exercises || [];
+        dayExs.forEach((_, i) => {
+          if (exerciseMap[`${dayIndex}-${i}`]) completedExercisesList.push(i);
+        });
+        await api.put(`/api/routine-progress/${id}/day`, {
+          dayIndex,
+          completedExercises: completedExercisesList
+        });
+      } catch (err) {
+        console.error('Error saving progress', err);
+      } finally {
+        setSaving(false);
+      }
+    }, 400);
   }, [id, routine]);
 
   const today = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -151,17 +158,19 @@ const RoutineView = () => {
 
   const toggleExercise = (dayIdx, exIdx) => {
     const key = `${dayIdx}-${exIdx}`;
-    setCompletedExercises(prev => {
-      const next = { ...prev, [key]: !prev[key] };
-      const dayExs = routine?.days?.[dayIdx]?.exercises || [];
-      const allCompleted = dayExs.every((_, i) => next[`${dayIdx}-${i}`]);
-      if (allCompleted && dayIdx === activeDayIndex) {
-        setShowCelebration(true);
-        setTimeout(() => setShowCelebration(false), 3000);
-      }
-      saveDayProgress(dayIdx, next);
-      return next;
-    });
+    const isNowDone = !completedExercises[key];
+    const nextMap = { ...completedExercises, [key]: isNowDone };
+
+    setCompletedExercises(nextMap);
+
+    const dayExs = routine?.days?.[dayIdx]?.exercises || [];
+    const allCompleted = dayExs.every((_, i) => nextMap[`${dayIdx}-${i}`]);
+    if (allCompleted && dayIdx === activeDayIndex) {
+      setShowCelebration(true);
+      if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+      celebrationTimerRef.current = setTimeout(() => setShowCelebration(false), 3000);
+    }
+    saveDayProgress(dayIdx, nextMap);
   };
 
   const isDayComplete = (dayIdx) => {
@@ -180,7 +189,20 @@ const RoutineView = () => {
     );
   }
 
-  if (!routine) return null;
+  if (loadError || !routine) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <div className="text-center max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
+          <p className="text-4xl mb-3">😕</p>
+          <h2 className="text-lg font-bold text-zinc-100 mb-2">No se pudo cargar la rutina</h2>
+          <p className="text-zinc-500 text-sm mb-6">Es posible que ya no tengas acceso a esta rutina.</p>
+          <button onClick={() => navigate('/rutinas')} className="w-full py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-500 transition-colors">
+            Volver a mis rutinas
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 p-4 sm:p-6 font-sans">
@@ -254,7 +276,7 @@ const RoutineView = () => {
                 return (
                   <button
                     key={index}
-                    onClick={() => { setActiveDayIndex(index); setShowCelebration(false); }}
+                    onClick={() => { setActiveDayIndex(index); setShowCelebration(false); if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current); }}
                     className={`
                       flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 border
                       ${isActive
