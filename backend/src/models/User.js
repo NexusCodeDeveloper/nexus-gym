@@ -28,10 +28,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    chatbotEnabled: {
-      type: Boolean,
-      default: true,
-    },
     licenseStartDate: {
       type: Date,
     },
@@ -61,5 +57,8 @@ const userSchema = new mongoose.Schema(
     timestamps: true, 
   }
 );
+
+userSchema.index({ dni: 1 });
+userSchema.index({ createdBy: 1, role: 1 });
 
 export default mongoose.model("User", userSchema);
