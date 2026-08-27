@@ -34,6 +34,10 @@ const routineSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'User'
     }],
+    groups: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group',
+    }],
     assignedToAll: { 
       type: Boolean, 
       default: false 
@@ -49,5 +53,8 @@ const routineSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+routineSchema.index({ gymId: 1 });
+routineSchema.index({ teacherId: 1 });
 
 export default mongoose.model("Routine", routineSchema);
