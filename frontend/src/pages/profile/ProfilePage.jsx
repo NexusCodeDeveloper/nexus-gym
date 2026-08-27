@@ -1,12 +1,9 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import StudentProfile from './StudentProfile';
 import StaffProfile from './StaffProfile';
 
 const ProfilePage = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   
   if (!user) return <div className="min-h-screen flex items-center justify-center text-zinc-500">Cargando perfil...</div>;
   return (
