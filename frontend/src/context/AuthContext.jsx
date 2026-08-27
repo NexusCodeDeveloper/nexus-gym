@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect, useRef } from "react";
 import { showConfirmDialog, showErrorToast, showLicenseAlert } from "../utils/swal";
 import api from "../service/api.js";
@@ -36,9 +37,10 @@ export const AuthProvider = ({ children }) => {
         await api.post("/api/auth/logout", {});
         setUser(null);
         setIsAuthenticated(false);
+        alertShown.current = false;
         window.location.href = '/login';
       } catch (error) {
-        console.error("Error al cerrar sesión", error);
+        console.error("Error logging out", error);
         showErrorToast('Hubo un problema al cerrar sesión. Inténtalo de nuevo.');
       }
     }
@@ -70,11 +72,10 @@ export const AuthProvider = ({ children }) => {
     const checkLogin = async () => {
       try {
         const res = await api.get("/api/auth/profile");
-        const userData = res.data;
-        setUser(userData);
+        setUser(res.data.data);
         setIsAuthenticated(true);
-        checkLicenseAlert(userData);
-      } catch (error) {
+        checkLicenseAlert(res.data.data);
+      } catch {
         setUser(null);
         setIsAuthenticated(false);
       } finally {
