@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext'; 
-import axios from 'axios';
+import api from '../../service/api.js';
 import { showSuccessToast, showErrorToast, showDeleteConfirmDialog } from '../../utils/swal';
 
 const RoutineList = () => {
@@ -13,8 +13,8 @@ const RoutineList = () => {
   useEffect(() => {
     const fetchRoutines = async () => {
       try {
-        const response = await axios.get("http://localhost:4000/api/routines/mis-rutinas", { withCredentials: true });
-        setRoutines(response.data);
+        const response = await api.get("/api/routines/mis-rutinas");
+        setRoutines(response.data.data);
       } catch (error) {
         console.error("Error cargando rutinas:", error);
         showErrorToast("No se pudieron cargar las rutinas.");
@@ -33,10 +33,10 @@ const RoutineList = () => {
     if (!isConfirmed) return;
 
     try {
-      await axios.delete(`http://localhost:4000/api/routines/${id}`, { withCredentials: true });
-      setRoutines(routines.filter(routine => routine._id !== id));
+      await api.delete(`/api/routines/${id}`);
+      setRoutines(prev => prev.filter(routine => routine._id !== id));
       showSuccessToast("Rutina eliminada con éxito.");
-    } catch (error) {
+    } catch {
       showErrorToast("Error al eliminar la rutina.");
     }
   };
