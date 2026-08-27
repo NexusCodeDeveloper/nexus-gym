@@ -10,4 +10,6 @@ const exerciseMediaSchema = new mongoose.Schema({
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 
+exerciseMediaSchema.index({ gymId: 1 });
+
 export default mongoose.model('ExerciseMedia', exerciseMediaSchema);
