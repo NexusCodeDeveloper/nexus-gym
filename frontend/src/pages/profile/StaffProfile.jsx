@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api.js';
 import AttendanceCheckin from '../../components/attendance/AttendanceCheckin';
 import AttendanceToday from '../../components/attendance/AttendanceToday';
@@ -8,10 +8,17 @@ const StaffProfile = ({ user }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/api/profile/stats")
-      .then(res => setStats(res.data))
-      .catch(err => console.error("Error cargando estadísticas", err))
-      .finally(() => setLoading(false));
+    const fetchStats = async () => {
+      try {
+        const res = await api.get("/api/profile/stats");
+        setStats(res.data.data);
+      } catch (err) {
+        console.error("Error cargando estadísticas", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   return (

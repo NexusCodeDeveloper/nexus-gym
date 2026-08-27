@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { showSuccessToast, showErrorToast } from '../../utils/swal';
@@ -50,15 +50,17 @@ const StudentProfile = ({ user }) => {
     }));
   }, [user?.metrics?.weightHistory]);
 
-  const expirationDate = user?.licenseEndDate ? new Date(user.licenseEndDate).toISOString().split('T')[0] : "No definida";
+  const expirationDate = user?.licenseEndDate
+    ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(user.licenseEndDate))
+    : "No definida";
 
   const handleSave = async () => {
     try {
       const response = await api.put("/api/profile/metrics", metrics);
 
-      updateUser(response.data);
+      updateUser(response.data.data);
 
-      const saved = response.data;
+      const saved = response.data.data;
       const lastWeight = saved?.metrics?.weightHistory?.length > 0
         ? saved.metrics.weightHistory[saved.metrics.weightHistory.length - 1].weight
         : 0;

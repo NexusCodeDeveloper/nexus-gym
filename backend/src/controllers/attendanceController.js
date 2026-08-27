@@ -1,43 +1,6 @@
 import Attendance from '../models/Attendance.js';
 import User from '../models/User.js';
-
-const ARG_OFFSET = -3 * 60;
-
-function getArgDateInfo() {
-  const now = new Date();
-  const argMs = now.getTime() + ARG_OFFSET * 60 * 1000;
-  const argDate = new Date(argMs);
-  return {
-    argDate,
-    year: argDate.getUTCFullYear(),
-    month: argDate.getUTCMonth(),
-    day: argDate.getUTCDate(),
-    hours: argDate.getUTCHours(),
-    minutes: argDate.getUTCMinutes(),
-  };
-}
-
-function getArgentinaToday() {
-  const { year, month, day } = getArgDateInfo();
-  return new Date(Date.UTC(year, month, day));
-}
-
-function getArgStartOfMonth() {
-  const { year, month } = getArgDateInfo();
-  return new Date(Date.UTC(year, month, 1));
-}
-
-function toArgISODate(date) {
-  const d = new Date(date);
-  const local = new Date(d.getTime() + ARG_OFFSET * 60 * 1000);
-  return local.toISOString().split('T')[0];
-}
-
-function toArgDateOnly(date) {
-  const d = new Date(date);
-  const local = new Date(d.getTime() + ARG_OFFSET * 60 * 1000);
-  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()));
-}
+import { getArgToday, getArgStartOfMonth, toArgISODate, getArgStartOfDay } from '../utils/date.js';
 
 function calcMaxDays(userCreatedAt, today) {
   const created = new Date(userCreatedAt);
@@ -65,7 +28,7 @@ export const checkin = async (req, res) => {
       return res.status(400).json({ message: 'No se encontró el gimnasio asociado al usuario' });
     }
 
-    const today = getArgentinaToday();
+    const today = getArgToday();
     const existing = await Attendance.findOne({ userId, date: today });
     if (existing) {
       return res.status(400).json({ message: 'Ya marcaste asistencia hoy' });
@@ -99,7 +62,7 @@ export const checkout = async (req, res) => {
       return res.status(403).json({ message: 'Solo profesores y alumnos pueden marcar salida' });
     }
 
-    const today = getArgentinaToday();
+    const today = getArgToday();
 
     const record = await Attendance.findOne({ userId, date: today });
 
@@ -134,7 +97,7 @@ export const checkout = async (req, res) => {
 export const myAttendance = async (req, res) => {
   try {
     const userId = req.user.id;
-    const today = getArgentinaToday();
+    const today = getArgToday();
 
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -158,20 +121,23 @@ export const myAttendance = async (req, res) => {
     });
 
     res.json({
-      checkedInToday,
-      totalDays,
-      percentage,
-      monthDays,
-      hasCheckedOut: checkedInToday
-        ? records.some(r => r.date.getTime() === today.getTime() && r.checkOut)
-        : false,
-      records: records.map(r => ({
-        date: r.date,
-        checkIn: r.checkIn,
-        checkOut: r.checkOut,
-        source: r.source,
-        present: true,
-      })),
+      message: 'Asistencia obtenida correctamente',
+      data: {
+        checkedInToday,
+        totalDays,
+        percentage,
+        monthDays,
+        hasCheckedOut: checkedInToday
+          ? records.some(r => r.date.getTime() === today.getTime() && r.checkOut)
+          : false,
+        records: records.map(r => ({
+          date: r.date,
+          checkIn: r.checkIn,
+          checkOut: r.checkOut,
+          source: r.source,
+          present: true,
+        })),
+      },
     });
   } catch (error) {
     console.error('My attendance error:', error);
@@ -185,8 +151,12 @@ export const gymAttendance = async (req, res) => {
       return res.status(403).json({ message: 'Solo el admin del gimnasio puede ver estas estadísticas' });
     }
 
+    if (req.user.role === 'superAdmin' && !req.query.gymId) {
+      return res.status(400).json({ message: 'ID del gimnasio requerido' });
+    }
+
     const gymId = req.user.role === 'superAdmin'
-      ? (req.query.gymId || req.user.id)
+      ? req.query.gymId
       : req.user.id;
 
     const queryDate = req.validatedQuery?.date;
@@ -196,7 +166,7 @@ export const gymAttendance = async (req, res) => {
           parseInt(queryDate.split('-')[1]) - 1,
           parseInt(queryDate.split('-')[2])
         ))
-      : getArgentinaToday();
+      : getArgToday();
 
     const thirtyDaysAgo = new Date(today);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -232,10 +202,10 @@ export const gymAttendance = async (req, res) => {
           r => r.userId && r.userId._id.toString() === p._id.toString()
         );
         const checkedInToday = profRecords.some(
-          r => toArgDateOnly(r.date).getTime() === today.getTime()
+          r => getArgStartOfDay(r.date).getTime() === today.getTime()
         );
         const todayRecord = profRecords.find(
-          r => toArgDateOnly(r.date).getTime() === today.getTime()
+          r => getArgStartOfDay(r.date).getTime() === today.getTime()
         );
         return {
           _id: p._id,
@@ -259,11 +229,14 @@ export const gymAttendance = async (req, res) => {
     const totalActiveProfessors = professors.filter(p => p.isActive).length;
 
     res.json({
-      attendanceRate,
-      totalProfessors: totalActiveProfessors,
-      totalStudents,
-      todayCheckIns: professorAttendance.filter(p => p.checkedInToday).length,
-      professors: professorAttendance,
+      message: 'Estadísticas obtenidas correctamente',
+      data: {
+        attendanceRate,
+        totalProfessors: totalActiveProfessors,
+        totalStudents,
+        todayCheckIns: professorAttendance.filter(p => p.checkedInToday).length,
+        professors: professorAttendance,
+      },
     });
   } catch (error) {
     console.error('Gym attendance error:', error);
@@ -287,7 +260,7 @@ export const gymAttendanceHistory = async (req, res) => {
 
     const { startDate, endDate } = req.validatedQuery;
 
-    const today = getArgentinaToday();
+    const today = getArgToday();
     const defaultStart = new Date(today);
     defaultStart.setDate(defaultStart.getDate() - 30);
 
@@ -365,11 +338,14 @@ export const gymAttendanceHistory = async (req, res) => {
     });
 
     res.json({
-      startDate: start,
-      endDate: end,
-      totalProfessors: professorIds.length,
-      totalDays: totalDaysInRange,
-      professors: attendanceByProfessor,
+      message: 'Historial obtenido correctamente',
+      data: {
+        startDate: start,
+        endDate: end,
+        totalProfessors: professorIds.length,
+        totalDays: totalDaysInRange,
+        professors: attendanceByProfessor,
+      },
     });
   } catch (error) {
     console.error('Gym attendance history error:', error);

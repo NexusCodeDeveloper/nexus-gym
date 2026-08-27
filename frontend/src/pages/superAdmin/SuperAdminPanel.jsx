@@ -1,62 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../service/api.js';
-import { z } from 'zod';
 import { showSuccessToast, showErrorToast, showDeleteConfirmDialog, showPositiveConfirmDialog } from '../../utils/swal';
 import { toDateInputValue } from '../../utils/date';
-
-const getToday = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-};
-
-const createSchema = z.object({
-  name: z.string().min(3, "El nombre debe tener al menos 3 letras").max(50, "El nombre es muy largo"),
-  dni: z.string().regex(/^\d{7,8}$/, "El DNI debe tener 7 u 8 números sin puntos"),
-  licenseStartDate: z.string().min(1, "Seleccioná una fecha de inicio"),
-  licenseEndDate: z.string().min(1, "Seleccioná una fecha de fin")
-}).superRefine((data, ctx) => {
-  if (data.licenseStartDate && data.licenseEndDate) {
-    const start = new Date(data.licenseStartDate + "T00:00:00");
-    const end = new Date(data.licenseEndDate + "T00:00:00");
-
-    if (start < getToday()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "La fecha de inicio no puede ser en el pasado",
-        path: ["licenseStartDate"]
-      });
-    }
-    
-    if (end <= start) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "El fin debe ser posterior al inicio",
-        path: ["licenseEndDate"]
-      });
-    }
-  }
-});
-
-const editSchema = z.object({
-  name: z.string().min(3, "El nombre debe tener al menos 3 letras").max(50, "El nombre es muy largo"),
-  licenseStartDate: z.string().min(1, "Seleccioná una fecha de inicio"),
-  licenseEndDate: z.string().min(1, "Seleccioná una fecha de fin")
-}).superRefine((data, ctx) => {
-  if (data.licenseStartDate && data.licenseEndDate) {
-    const start = new Date(data.licenseStartDate + "T00:00:00");
-    const end = new Date(data.licenseEndDate + "T00:00:00");
-    
-    if (end <= start) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "El fin debe ser posterior al inicio",
-        path: ["licenseEndDate"]
-      });
-    }
-  }
-});
+import { createAdminSchema as createSchema, editAdminSchema as editSchema } from '../../validators/superAdminValidators';
 
 const SuperAdminPanel = () => {
   const navigate = useNavigate();
@@ -119,16 +66,6 @@ const SuperAdminPanel = () => {
     }
   };
 
-  const handleToggleChatbot = async (id) => {
-    try {
-      const res = await api.patch(`/api/super-admin/admins/${id}/chatbot-toggle`);
-      showSuccessToast(res.data.message);
-      setAdmins(admins.map(a => a._id === id ? { ...a, chatbotEnabled: res.data.data?.chatbotEnabled } : a));
-    } catch (error) {
-      showErrorToast('Error al cambiar estado del chatbot');
-    }
-  };
-
   const handleToggleAccess = async (id) => {
     try {
       const response = await api.patch(`/api/super-admin/admins/${id}/toggle-access`);
@@ -136,7 +73,7 @@ const SuperAdminPanel = () => {
       const actionText = isActive ? 'activado' : 'suspendido';
       showSuccessToast(`Acceso ${actionText} correctamente`);
       setAdmins(admins.map(admin => admin._id === id ? { ...admin, isActive } : admin));
-    } catch (error) {
+    } catch {
       showErrorToast('Error al cambiar el acceso');
     }
   };
@@ -154,7 +91,7 @@ const SuperAdminPanel = () => {
       await api.patch(`/api/super-admin/admins/${id}/renew`);
       fetchAdmins();
       showSuccessToast('Licencia renovada correctamente');
-    } catch (error) {
+    } catch {
       showErrorToast('Error al renovar la licencia');
     }
   };
@@ -171,7 +108,7 @@ const SuperAdminPanel = () => {
       await api.delete(`/api/super-admin/admins/${id}`);
       setAdmins(admins.filter(admin => admin._id !== id));
       showSuccessToast('Cliente eliminado correctamente');
-    } catch (error) {
+    } catch {
       showErrorToast('Error al eliminar el cliente');
     }
   };
@@ -269,17 +206,16 @@ const SuperAdminPanel = () => {
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">Inicio</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">Fin</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">Estado</th>
-                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">Chatbot</th>
                   <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs sm:text-sm">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
                 {isLoading ? (
-                  <tr><td colSpan="7" className="px-6 py-8 text-center text-zinc-400">Cargando clientes...</td></tr>
+                  <tr><td colSpan="6" className="px-6 py-8 text-center text-zinc-400">Cargando clientes...</td></tr>
                 ) : admins.length === 0 ? (
-                  <tr><td colSpan="7" className="px-6 py-8 text-center text-zinc-400">No hay gimnasios registrados.</td></tr>
+                  <tr><td colSpan="6" className="px-6 py-8 text-center text-zinc-400">No hay gimnasios registrados.</td></tr>
                 ) : (
-                  admins.filter(admin => admin.dni && admin.dni.includes(searchDni)).map((admin) => (
+                  admins.filter(admin => (admin.dni || '').includes(searchDni)).map((admin) => (
                     <tr key={admin._id} className="hover:bg-zinc-800/50 transition-colors">
                       <td className="px-3 sm:px-6 py-3 sm:py-4 font-medium text-zinc-100 text-sm sm:text-base">{admin.name}</td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm table-cell">{admin.dni}</td>
@@ -289,18 +225,6 @@ const SuperAdminPanel = () => {
                         <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border ${admin.isActive ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                           {admin.isActive ? 'Activo' : 'Suspendido'}
                         </span>
-                      </td>
-                      <td className="px-3 sm:px-6 py-3 sm:py-4">
-                        <button
-                          onClick={() => handleToggleChatbot(admin._id)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium border transition-colors ${
-                            admin.chatbotEnabled !== false
-                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20'
-                              : 'bg-zinc-800 text-zinc-500 border-zinc-700 hover:bg-zinc-700'
-                          }`}
-                        >
-                          {admin.chatbotEnabled !== false ? 'Habilitado' : 'Deshabilitado'}
-                        </button>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                         <button
@@ -323,7 +247,7 @@ const SuperAdminPanel = () => {
         </div>
 
         {isCreateModalOpen && (
-          <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
             <div className="bg-zinc-900 rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-xl border border-zinc-800">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-zinc-100">Registrar Cliente</h2>
@@ -365,7 +289,7 @@ const SuperAdminPanel = () => {
 
         {/* MODAL 2: EDITAR CLIENTE */}
         {isEditModalOpen && editingAdmin && (
-          <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
             <div className="bg-zinc-900 rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-xl border border-zinc-800">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-zinc-100">Editar Cliente</h2>

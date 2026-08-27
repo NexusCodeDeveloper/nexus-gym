@@ -11,9 +11,10 @@ import adminRoutes from "./routes/adminRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js"; 
 import exerciseMediaRoutes from "./routes/exerciseMediaRoutes.js";
 import routineProgressRoutes from "./routes/routineProgressRoutes.js";
-import chatRoutes from "./routes/chatRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import workoutSessionRoutes from "./routes/workoutSessionRoutes.js";
+import groupRoutes from "./routes/groupRoutes.js";
+import securityRoutes from "./routes/securityRoutes.js";
 
 dotenv.config();
 
@@ -24,7 +25,7 @@ const port = process.env.PORT || 4000;
 
 app.use(
   cors({
-    origin: "http://localhost:5173", 
+    origin: process.env.FRONTEND_URL || "http://localhost:5173", 
     credentials: true, 
   })
 );
@@ -44,8 +45,9 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/exercise-media", exerciseMediaRoutes);
 app.use("/api/routine-progress", routineProgressRoutes);
 app.use("/api/attendance", attendanceRoutes);
-app.use("/api/chat", chatRoutes);
 app.use("/api/workout", workoutSessionRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/security", securityRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor backend corriendo en http://localhost:${port}`);

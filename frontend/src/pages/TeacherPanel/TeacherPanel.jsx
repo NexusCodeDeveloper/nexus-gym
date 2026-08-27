@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { showSuccessToast, showErrorToast } from '../../utils/swal';
 import api from '../../service/api.js';
+import GroupManager from '../../components/groupManager/GroupManager.jsx';
 
 const VideoPickerModal = ({ onSelect, onClose, videos }) => {
   const [search, setSearch] = useState('');
@@ -10,7 +11,7 @@ const VideoPickerModal = ({ onSelect, onClose, videos }) => {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
       <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] flex flex-col border border-zinc-800">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-zinc-100">Seleccionar video</h3>
@@ -59,14 +60,18 @@ const TeacherPanel = () => {
 
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [alumnos, setAlumnos] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(isEditing);
   const [showVideoPicker, setShowVideoPicker] = useState(null);
+  const [showGroupManager, setShowGroupManager] = useState(false);
   const [libraryVideos, setLibraryVideos] = useState([]);
+  const [assignmentMode, setAssignmentMode] = useState('students');
   
   const [routine, setRoutine] = useState({
     title: '',
     level: 'Principiante',
     students: [],
+    groups: [],
     assignedToAll: false,
     days: [{ dayName: 'Lunes', exercises: [{ name: '', sets: '', reps: '', rest: '', videoUrl: '' }] }]
   });
@@ -74,16 +79,28 @@ const TeacherPanel = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [alumnosRes, videosRes] = await Promise.all([
+        const [alumnosRes, videosRes, groupsRes] = await Promise.all([
           api.get("/api/auth/alumnos"),
-          api.get("/api/exercise-media").catch(() => ({ data: [] })),
+          api.get("/api/exercise-media").catch(() => ({ data: { data: [] } })),
+          api.get("/api/groups").catch(() => ({ data: { data: [] } })),
         ]);
-        setAlumnos(alumnosRes.data);
-        setLibraryVideos(videosRes.data);
+        setAlumnos(alumnosRes.data?.data || []);
+        setLibraryVideos(videosRes.data?.data || []);
+        setGroups(groupsRes.data?.data || []);
 
         if (isEditing) {
           const routineRes = await api.get(`/api/routines/${id}`);
-          setRoutine(routineRes.data);
+          const loadedRoutine = routineRes.data.data;
+          setRoutine({
+            ...loadedRoutine,
+            students: (loadedRoutine.students || []).map(s => typeof s === 'string' ? s : s._id),
+            groups: (loadedRoutine.groups || []).map(g => typeof g === 'string' ? g : g._id),
+          });
+          setAssignmentMode(
+            loadedRoutine.assignedToAll ? 'all'
+              : (loadedRoutine.groups || []).length > 0 ? 'groups'
+              : 'students'
+          );
         }
       } catch (error) {
         console.error("Error al cargar datos:", error);
@@ -95,10 +112,13 @@ const TeacherPanel = () => {
     fetchInitialData();
   }, [id, isEditing, navigate]);
 
-  // FUNCIONES AUXILIARES (¡Estas eran las que probablemente faltaban!)
+  // HELPER FUNCTIONS
   const addDay = () => {
     if (routine.days.length >= 7) return;
-    const newDay = { dayName: DIAS_SEMANA[routine.days.length], exercises: [] };
+    const usedNames = routine.days.map(d => d.dayName);
+    const nextDay = DIAS_SEMANA.find(d => !usedNames.includes(d));
+    if (!nextDay) return;
+    const newDay = { dayName: nextDay, exercises: [] };
     setRoutine({ ...routine, days: [...routine.days, newDay] });
   };
 
@@ -110,20 +130,29 @@ const TeacherPanel = () => {
   };
 
   const addExercise = () => {
-    const newDays = [...routine.days];
-    newDays[activeDayIndex].exercises.push({ name: '', sets: '', reps: '', rest: '', videoUrl: '' });
+    const newDays = routine.days.map((day, i) =>
+      i === activeDayIndex
+        ? { ...day, exercises: [...day.exercises, { name: '', sets: '', reps: '', rest: '', videoUrl: '' }] }
+        : day
+    );
     setRoutine({ ...routine, days: newDays });
   };
 
   const removeExercise = (eIndex) => {
-    const newDays = [...routine.days];
-    newDays[activeDayIndex].exercises.splice(eIndex, 1);
+    const newDays = routine.days.map((day, i) =>
+      i === activeDayIndex
+        ? { ...day, exercises: day.exercises.filter((_, j) => j !== eIndex) }
+        : day
+    );
     setRoutine({ ...routine, days: newDays });
   };
 
   const updateExercise = (eIndex, field, value) => {
-    const newDays = [...routine.days];
-    newDays[activeDayIndex].exercises[eIndex][field] = value;
+    const newDays = routine.days.map((day, i) =>
+      i === activeDayIndex
+        ? { ...day, exercises: day.exercises.map((ex, j) => j === eIndex ? { ...ex, [field]: value } : ex) }
+        : day
+    );
     setRoutine({ ...routine, days: newDays });
   };
 
@@ -134,9 +163,31 @@ const TeacherPanel = () => {
     }));
   };
 
+  const toggleGroup = (id) => {
+    setRoutine(prev => ({
+      ...prev,
+      groups: prev.groups.includes(id) ? prev.groups.filter(g => g !== id) : [...prev.groups, id]
+    }));
+  };
+
+  const handleGroupsChanged = async () => {
+    try {
+      const groupsRes = await api.get("/api/groups");
+      setGroups(groupsRes.data?.data || []);
+      setRoutine(prev => ({
+        ...prev,
+        groups: prev.groups.filter(g => (groupsRes.data?.data || []).some(gr => gr._id === g)),
+      }));
+    } catch {
+      // ignore
+    }
+  };
+
   const handleSaveRoutine = async () => {
     if (!routine.title) return showErrorToast("Por favor, ponle un título a la rutina");
-    if (!routine.assignedToAll && routine.students.length === 0) return showErrorToast("Seleccioná al menos un alumno o marcá 'Para todos'");
+    if (!routine.assignedToAll && routine.students.length === 0 && routine.groups.length === 0) {
+      return showErrorToast("Seleccioná al menos un alumno, un grupo o marcá 'Para todos'");
+    }
 
     const url = isEditing ? `/api/routines/${id}` : "/api/routines/create";
     const method = isEditing ? "PUT" : "POST";
@@ -171,23 +222,30 @@ const TeacherPanel = () => {
           <div className="flex items-center gap-2 bg-zinc-800/50 p-1 rounded-xl w-fit">
             <button
               type="button"
-              onClick={() => setRoutine({ ...routine, assignedToAll: true, students: [] })}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${routine.assignedToAll ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+              onClick={() => { setAssignmentMode('all'); setRoutine({ ...routine, assignedToAll: true, students: [], groups: [] }); }}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${assignmentMode === 'all' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
             >
-              Para todos los alumnos
+              Para todos
             </button>
             <button
               type="button"
-              onClick={() => setRoutine({ ...routine, assignedToAll: false })}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${!routine.assignedToAll ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+              onClick={() => { setAssignmentMode('students'); setRoutine({ ...routine, assignedToAll: false }); }}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${assignmentMode === 'students' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
             >
-              Seleccionar alumnos
+              Por alumno
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAssignmentMode('groups'); setRoutine({ ...routine, assignedToAll: false }); }}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${assignmentMode === 'groups' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+            >
+              Por grupo
             </button>
           </div>
 
-          {routine.assignedToAll ? (
+          {assignmentMode === 'all' ? (
             <p className="text-xs text-zinc-500">Esta rutina se asignará a <span className="text-zinc-300 font-semibold">todos los alumnos</span> del gimnasio.</p>
-          ) : (
+          ) : assignmentMode === 'students' ? (
             <div className="flex flex-wrap gap-2">
               {alumnos.length === 0 ? (
                 <p className="text-xs text-zinc-500">No hay alumnos disponibles.</p>
@@ -207,6 +265,37 @@ const TeacherPanel = () => {
                   </button>
                 ))
               )}
+            </div>
+          ) : (
+            <div>
+              <div className="flex flex-wrap gap-2">
+                {groups.length === 0 ? (
+                  <p className="text-xs text-zinc-500">Todavía no hay grupos. Creá uno para asignar la rutina.</p>
+                ) : (
+                  groups.map(g => (
+                    <button
+                      key={g._id}
+                      type="button"
+                      onClick={() => toggleGroup(g._id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        routine.groups.includes(g._id)
+                          ? 'bg-blue-600/20 border-blue-500/40 text-blue-300'
+                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                      }`}
+                    >
+                      {routine.groups.includes(g._id) ? '✓ ' : ''}{g.name}
+                      <span className="ml-1.5 text-[10px] opacity-70">({g.students?.length || 0})</span>
+                    </button>
+                  ))
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGroupManager(true)}
+                className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/20 text-blue-400 border border-blue-500/20 hover:bg-blue-600/30 transition-colors"
+              >
+                + Gestionar grupos
+              </button>
             </div>
           )}
 
@@ -278,6 +367,15 @@ const TeacherPanel = () => {
           videos={libraryVideos}
           onSelect={(url) => updateExercise(showVideoPicker, 'videoUrl', url)}
           onClose={() => setShowVideoPicker(null)}
+        />
+      )}
+
+      {showGroupManager && (
+        <GroupManager
+          open={showGroupManager}
+          students={alumnos}
+          onClose={() => setShowGroupManager(false)}
+          onGroupsChanged={handleGroupsChanged}
         />
       )}
     </div>

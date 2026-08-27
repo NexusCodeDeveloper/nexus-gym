@@ -1,6 +1,6 @@
 import Swal from 'sweetalert2';
 
-// Un "toast" estilizado y reutilizable para notificaciones rápidas
+// A styled, reusable toast for quick notifications
 const Toast = Swal.mixin({
   toast: true,
   position: 'top-end',
@@ -16,7 +16,7 @@ const Toast = Swal.mixin({
   iconColor: '#3b82f6' // blue-500
 });
 
-// Función para mostrar un toast de éxito
+// Shows a success toast
 export const showSuccessToast = (message) => {
   Toast.fire({
     icon: 'success',
@@ -25,7 +25,7 @@ export const showSuccessToast = (message) => {
   });
 };
 
-// Función para mostrar un toast de error
+// Shows an error toast
 export const showErrorToast = (message) => {
   Toast.fire({
     icon: 'error',
@@ -34,7 +34,16 @@ export const showErrorToast = (message) => {
   });
 };
 
-// Función para mostrar un diálogo de confirmación general
+// Shows a warning toast
+export const showWarningToast = (message) => {
+  Toast.fire({
+    icon: 'warning',
+    title: message,
+    iconColor: '#f59e0b', // amber-500
+  });
+};
+
+// Shows a general confirmation dialog
 export const showConfirmDialog = async ({ title, text, confirmButtonText = 'Sí, continuar' }) => {
   const result = await Swal.fire({
     title,
@@ -57,7 +66,7 @@ export const showConfirmDialog = async ({ title, text, confirmButtonText = 'Sí,
   return result.isConfirmed;
 };
 
-// Función para mostrar un diálogo de confirmación de eliminación (más drástico)
+// Shows a delete confirmation dialog (more drastic)
 export const showDeleteConfirmDialog = async ({ title = '¿Estás seguro?', text = "¡Esta acción no se puede deshacer!", confirmButtonText = 'Sí, eliminar' }) => {
   const result = await Swal.fire({
     title,
@@ -80,7 +89,7 @@ export const showDeleteConfirmDialog = async ({ title = '¿Estás seguro?', text
   return result.isConfirmed;
 };
 
-// Función para mostrar alerta de licencia próxima a vencer
+// Shows an alert for a license expiring soon
 export const showLicenseAlert = (daysLeft) => {
   const label = daysLeft === 0 ? 'HOY' : daysLeft === 1 ? 'MAÑANA' : `en ${daysLeft} días`;
   Swal.fire({
@@ -98,7 +107,7 @@ export const showLicenseAlert = (daysLeft) => {
   });
 };
 
-// Función para mostrar un diálogo de confirmación para acciones positivas (ej: renovar)
+// Shows a confirmation dialog for positive actions (e.g. renew)
 export const showPositiveConfirmDialog = async ({ title, text, confirmButtonText = 'Sí, confirmar' }) => {
   const result = await Swal.fire({
     title,

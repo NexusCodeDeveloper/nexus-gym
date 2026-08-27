@@ -1,6 +1,13 @@
 import User from '../models/User.js';
 import Routine from '../models/Routine.js';
+import Group from '../models/Group.js';
+import Attendance from '../models/Attendance.js';
+import ExerciseMedia from '../models/ExerciseMedia.js';
+import SecurityAlert from '../models/SecurityAlert.js';
+import RoutineProgress from '../models/RoutineProgress.js';
+import WorkoutSession from '../models/WorkoutSession.js';
 import bcrypt from 'bcryptjs';
+import { toArgDate, getArgToday, getArgStartOfDay } from '../utils/date.js';
 
 export const getAdmins = async (req, res) => {
   try {
@@ -52,8 +59,8 @@ export const createAdmin = async (req, res) => {
       password: hashedPassword,
       role: 'admin',
       isActive: true,
-      licenseStartDate,
-      licenseEndDate,
+      licenseStartDate: toArgDate(licenseStartDate),
+      licenseEndDate: toArgDate(licenseEndDate),
     });
 
     const { password, ...safeAdmin } = newAdmin.toObject();
@@ -71,10 +78,10 @@ export const renewAdmin = async (req, res) => {
       return res.status(404).json({ message: 'Cliente no encontrado' });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const currentEnd = new Date(admin.licenseEndDate);
-    currentEnd.setHours(0, 0, 0, 0);
+    const today = getArgToday();
+    const currentEnd = admin.licenseEndDate
+      ? getArgStartOfDay(admin.licenseEndDate)
+      : new Date(0);
 
     const baseDate = currentEnd > today ? currentEnd : today;
     const newEnd = new Date(baseDate);
@@ -96,26 +103,6 @@ export const renewAdmin = async (req, res) => {
   }
 };
 
-export const toggleChatbot = async (req, res) => {
-  try {
-    const admin = await User.findOne({ _id: req.validatedParams.id, role: 'admin' });
-    if (!admin) {
-      return res.status(404).json({ message: 'Gimnasio no encontrado' });
-    }
-
-    admin.chatbotEnabled = !admin.chatbotEnabled;
-    await admin.save();
-
-    res.json({
-      message: admin.chatbotEnabled ? 'Chatbot habilitado' : 'Chatbot deshabilitado',
-      data: { chatbotEnabled: admin.chatbotEnabled },
-    });
-  } catch (error) {
-    console.error('Error toggling chatbot:', error);
-    res.status(500).json({ message: 'Error al actualizar el chatbot' });
-  }
-};
-
 export const deleteAdmin = async (req, res) => {
   try {
     const admin = await User.findOneAndDelete({ _id: req.validatedParams.id, role: 'admin' });
@@ -128,6 +115,12 @@ export const deleteAdmin = async (req, res) => {
     await Promise.all([
       User.deleteMany({ createdBy: gymId }),
       Routine.deleteMany({ gymId }),
+      Group.deleteMany({ gymId }),
+      Attendance.deleteMany({ gymId }),
+      ExerciseMedia.deleteMany({ gymId }),
+      SecurityAlert.deleteMany({ gymId }),
+      RoutineProgress.deleteMany({ gymId }),
+      WorkoutSession.deleteMany({ gymId }),
     ]);
 
     res.json({ message: 'Cliente y todos sus usuarios/rutinas eliminados correctamente' });
@@ -144,10 +137,17 @@ export const updateAdmin = async (req, res) => {
       return res.status(400).json({ message: 'No hay campos para actualizar' });
     }
 
+    if (updateFields.licenseStartDate) {
+      updateFields.licenseStartDate = toArgDate(updateFields.licenseStartDate);
+    }
+    if (updateFields.licenseEndDate) {
+      updateFields.licenseEndDate = toArgDate(updateFields.licenseEndDate);
+    }
+
     const updatedAdmin = await User.findOneAndUpdate(
       { _id: req.validatedParams.id, role: 'admin' },
       updateFields,
-      { new: true }
+      { returnDocument: 'after' }
     ).select('-password');
 
     if (!updatedAdmin) {

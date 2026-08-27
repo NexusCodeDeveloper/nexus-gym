@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const SwipeButton = ({ onSwipe, isLoading, disabled, text = "Desliza para ingresar" }) => {
   const [position, setPosition] = useState(0);
@@ -20,38 +20,38 @@ const SwipeButton = ({ onSwipe, isLoading, disabled, text = "Desliza para ingres
     setIsDragging(true);
   };
 
-  const handleDrag = (e) => {
-    if (!isDragging || disabled || isLoading || isSuccess) return;
-
-    const container = containerRef.current;
-    const button = buttonRef.current;
-    if (!container || !button) return;
-
-    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    const containerRect = container.getBoundingClientRect();
-    const maxPosition = containerRect.width - button.offsetWidth;
-    
-    let newPosition = clientX - containerRect.left - (button.offsetWidth / 2);
-    newPosition = Math.max(0, newPosition);
-    newPosition = Math.min(maxPosition, newPosition);
-    
-    setPosition(newPosition);
-
-    if (newPosition >= maxPosition * 0.95) {
-      setIsDragging(false);
-      setIsSuccess(true);
-      setPosition(maxPosition);
-      onSwipe();
-    }
-  };
-
-  const handleDragEnd = () => {
-    if (!isDragging || isSuccess) return;
-    setIsDragging(false);
-    setPosition(0);
-  };
-
   useEffect(() => {
+    const handleDrag = (e) => {
+      if (!isDragging || disabled || isLoading || isSuccess) return;
+
+      const container = containerRef.current;
+      const button = buttonRef.current;
+      if (!container || !button) return;
+
+      const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      const containerRect = container.getBoundingClientRect();
+      const maxPosition = containerRect.width - button.offsetWidth;
+      
+      let newPosition = clientX - containerRect.left - (button.offsetWidth / 2);
+      newPosition = Math.max(0, newPosition);
+      newPosition = Math.min(maxPosition, newPosition);
+      
+      setPosition(newPosition);
+
+      if (newPosition >= maxPosition * 0.95) {
+        setIsDragging(false);
+        setIsSuccess(true);
+        setPosition(maxPosition);
+        onSwipe();
+      }
+    };
+
+    const handleDragEnd = () => {
+      if (!isDragging || isSuccess) return;
+      setIsDragging(false);
+      setPosition(0);
+    };
+
     if (isDragging) {
       window.addEventListener('mousemove', handleDrag);
       window.addEventListener('mouseup', handleDragEnd);
@@ -69,7 +69,7 @@ const SwipeButton = ({ onSwipe, isLoading, disabled, text = "Desliza para ingres
       window.removeEventListener('touchmove', handleDrag);
       window.removeEventListener('touchend', handleDragEnd);
     };
-  }, [isDragging]);
+  }, [isDragging, disabled, isLoading, isSuccess, onSwipe]);
 
   return (
     <div 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { showSuccessToast, showErrorToast, showConfirmDialog } from '../../utils/swal';
 import api from '../../service/api.js';
 
@@ -10,7 +10,7 @@ const AttendanceCheckin = () => {
   const fetchAttendance = async () => {
     try {
       const res = await api.get('/api/attendance/my');
-      setAttendance(res.data);
+      setAttendance(res.data.data);
     } catch {
       showErrorToast('Error al cargar datos de asistencia');
     } finally {

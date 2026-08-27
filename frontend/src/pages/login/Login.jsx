@@ -1,24 +1,33 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; 
-import { useAuth } from '../../context/AuthContext'; 
-import { verifyDni } from '../../service/authService'; 
-import SwipeButton from '../../components/SwipeButton/SwipeButton'; 
-import { z } from 'zod';
-
-const loginSchema = z.object({
-  dni: z.string().regex(/^\d{7,8}$/, "El DNI debe contener entre 7 y 8 números.")
-});
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { verifyDni, fetchGyms } from '../../service/authService';
+import SwipeButton from '../../components/SwipeButton/SwipeButton';
+import { loginSchema } from '../../validators/loginValidators';
 
 const Login = () => {
   const [dni, setDni] = useState('');
+  const [gyms, setGyms] = useState([]);
+  const [gymId, setGymId] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const { signin } = useAuth();
 
   const licenseReason = location.state?.reason;
+
+  useEffect(() => {
+    const loadGyms = async () => {
+      try {
+        setGyms(await fetchGyms());
+      } catch {
+        // Gym list is optional; login still works for superAdmin
+      }
+    };
+    loadGyms();
+  }, []);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -31,7 +40,7 @@ const Login = () => {
 
   const handleLoginAction = async () => {
     const result = loginSchema.safeParse({ dni });
-    
+
     if (!result.success) {
       setError(result.error.format().dni._errors[0]);
       return;
@@ -41,11 +50,11 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await verifyDni(dni);
-      
-      if (response.success) {
-        signin(response.user);
-        localStorage.setItem('nexus_token', response.token);
+      const response = await verifyDni(dni, gymId || undefined);
+      const user = response.data?.user;
+
+      if (user) {
+        signin(user);
 
         // Redirigir siempre a la página de inicio después del login
         navigate('/');
@@ -88,7 +97,7 @@ const Login = () => {
             <div className="absolute inset-0 rounded-2xl bg-blue-500/20 blur-xl scale-125" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">NEXUS SYSTEM</h1>
-          <p className="text-slate-400 text-sm mt-1.5 font-medium tracking-wide">Terminal de Acceso para gimansios</p>
+          <p className="text-slate-400 text-sm mt-1.5 font-medium tracking-wide">Terminal de Acceso para gimnasios</p>
         </div>
 
         {/* Mensaje de licencia vencida/suspendida desde ProtectedRoute */}
@@ -152,6 +161,41 @@ const Login = () => {
                   {error}
                 </p>
               )}
+            </div>
+
+            {/* Sección del Gimnasio */}
+            <div>
+              <label htmlFor="gym" className="block text-sm font-semibold text-slate-300 mb-2">
+                Selecciona tu gimnasio
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors duration-300">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                </div>
+                <select
+                  id="gym"
+                  name="gym"
+                  value={gymId}
+                  onChange={(e) => setGymId(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full py-4 pl-12 pr-5 bg-zinc-900/50 border border-white/10 rounded-2xl text-white placeholder-zinc-500 text-base transition-all duration-300 focus:outline-none focus:bg-white/[0.03] hover:border-white/20 focus:border-blue-500/50 focus:shadow-[0_0_20px_rgba(59,130,246,0.15)] disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+                >
+                  <option value="" className="bg-zinc-900">Acceso de sistema (super admin)</option>
+                  {gyms.map(gym => (
+                    <option key={gym._id} value={gym._id} className="bg-zinc-900">
+                      {gym.name} · DNI {gym.dni}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-500">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Contenedor del SwipeButton */}
