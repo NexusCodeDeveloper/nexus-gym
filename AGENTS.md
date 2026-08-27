@@ -40,7 +40,7 @@
 
 ## Reglas importantes
 1. No modificar `.env` ni archivos de configuración de Docker sin preguntar
-2. El archivo .env usa `TOKEN_SECRET`, pero el código referencia `JWT_SECRET` (hay fallback)
+2. El archivo .env usa `TOKEN_SECRET`; el código lo usa con fallback a `JWT_SECRET` si falta (ver `backend/src/libs/jwt.js`)
 3. No instalar nuevas dependencias sin preguntar
 4. **Agregar validación Zod en los controladores del backend** (middlewares de validación con Zod usando `zod` que ya está instalado)
 5. El login principal es por DNI, no por email
