@@ -6,6 +6,11 @@ const workoutSessionSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  gymId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
   routineId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Routine',
@@ -29,5 +34,9 @@ const workoutSessionSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+workoutSessionSchema.index({ userId: 1, endTime: 1 });
+workoutSessionSchema.index({ userId: 1, startTime: -1 });
+workoutSessionSchema.index({ gymId: 1 });
 
 export default mongoose.model('WorkoutSession', workoutSessionSchema);

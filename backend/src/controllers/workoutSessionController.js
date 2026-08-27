@@ -1,13 +1,27 @@
 import WorkoutSession from '../models/WorkoutSession.js';
+import Routine from '../models/Routine.js';
+import User from '../models/User.js';
+import { getArgToday } from '../utils/date.js';
 
 export const startSession = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { routineId } = req.body;
+    const { routineId } = req.validatedBody;
 
     const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
+    const today = getArgToday();
+
+    let gymId = null;
+    if (routineId) {
+      const routine = await Routine.findById(routineId).select('gymId');
+      if (!routine) {
+        return res.status(404).json({ message: 'Rutina no encontrada' });
+      }
+      gymId = routine.gymId;
+    } else {
+      const user = await User.findById(userId).select('createdBy');
+      gymId = user?.createdBy || null;
+    }
 
     const existing = await WorkoutSession.findOne({ userId, endTime: null });
     if (existing) {
@@ -16,6 +30,7 @@ export const startSession = async (req, res) => {
 
     const session = await WorkoutSession.create({
       userId,
+      gymId,
       routineId: routineId || null,
       startTime: now,
       date: today,
@@ -56,7 +71,7 @@ export const getActiveSession = async (req, res) => {
   try {
     const userId = req.user.id;
     const session = await WorkoutSession.findOne({ userId, endTime: null });
-    res.json({ data: session || null });
+    res.json({ message: 'Sesión activa obtenida correctamente', data: session || null });
   } catch (error) {
     console.error('Get active session error:', error);
     res.status(500).json({ message: 'Error al obtener sesión activa' });
@@ -71,7 +86,7 @@ export const getHistory = async (req, res) => {
       .sort({ startTime: -1 })
       .limit(50);
 
-    res.json({ data: sessions });
+    res.json({ message: 'Historial obtenido correctamente', data: sessions });
   } catch (error) {
     console.error('Get history error:', error);
     res.status(500).json({ message: 'Error al obtener el historial' });
