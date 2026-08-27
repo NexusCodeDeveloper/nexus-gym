@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/statCard/StatCard.jsx';
@@ -6,13 +6,16 @@ import QuickAction from '../components/quickAction/QuickAction.jsx';
 import api from '../service/api.js';
 
 const HomePage = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profAttendance, setProfAttendance] = useState(null);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const getToday = () => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,9 +23,10 @@ const HomePage = () => {
         if (user?.role === 'superAdmin') {
           const res = await api.get('/api/super-admin/admins');
           const admins = res.data?.data || res.data || [];
+          const localToday = getToday();
           const expiring = admins.filter(a => {
             if (!a.licenseEndDate) return false;
-            const daysLeft = Math.ceil((new Date(a.licenseEndDate) - today) / (1000 * 60 * 60 * 24));
+            const daysLeft = Math.ceil((new Date(a.licenseEndDate) - localToday) / (1000 * 60 * 60 * 24));
             return daysLeft <= 7 && daysLeft >= 0;
           });
           setStats({
@@ -33,26 +37,32 @@ const HomePage = () => {
             admins,
           });
         } else if (user?.role === 'admin') {
-          const [statsRes, attendanceRes] = await Promise.all([
-            api.get('/api/profile/stats'),
-            api.get('/api/attendance/gym'),
-          ]);
-          setStats(statsRes.data);
-          setProfAttendance(attendanceRes.data);
+          try {
+            const statsRes = await api.get('/api/profile/stats');
+            setStats(statsRes.data.data);
+          } catch (err) {
+            console.error('Error fetching staff stats:', err);
+          }
+          try {
+            const attendanceRes = await api.get('/api/attendance/gym');
+            setProfAttendance(attendanceRes.data.data);
+          } catch (err) {
+            console.error('Error fetching gym attendance:', err);
+          }
         } else if (user?.role === 'profesor') {
           const [routinesRes, alumnosRes] = await Promise.all([
             api.get('/api/routines/mis-rutinas'),
             api.get('/api/auth/alumnos'),
           ]);
           setStats({
-            routines: routinesRes.data?.length || 0,
-            alumnos: alumnosRes.data?.length || 0,
-            routinesList: routinesRes.data || [],
-            alumnosList: alumnosRes.data || [],
+            routines: routinesRes.data?.data?.length || 0,
+            alumnos: alumnosRes.data?.data?.length || 0,
+            routinesList: routinesRes.data?.data || [],
+            alumnosList: alumnosRes.data?.data || [],
           });
         } else if (user?.role === 'alumno') {
           const res = await api.get('/api/routines/mis-rutinas');
-          const routinesList = res.data || [];
+          const routinesList = res.data?.data || [];
           const totalExercises = routinesList.reduce((sum, r) =>
             sum + (r.days?.reduce((daySum, d) => daySum + (d.exercises?.length || 0), 0) || 0), 0);
           setStats({
@@ -72,7 +82,7 @@ const HomePage = () => {
 
   const daysUntilLicenseEnd = () => {
     if (!user?.licenseEndDate) return null;
-    return Math.ceil((new Date(user.licenseEndDate) - today) / (1000 * 60 * 60 * 24));
+    return Math.ceil((new Date(user.licenseEndDate) - getToday()) / (1000 * 60 * 60 * 24));
   };
 
   const licenseStatus = () => {
@@ -112,11 +122,14 @@ const HomePage = () => {
   }
 
   const licenseBadge = () => {
-    const days = daysUntilLicenseEnd();
-    if (days === null) return null;
-    if (days < 0) return { label: 'Licencia vencida', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
-    if (days <= 7) return { label: `${days} día${days !== 1 ? 's' : ''} restantes`, color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
-    return { label: `${days} días restantes`, color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+    const status = licenseStatus();
+    if (!status) return null;
+    const colorMap = {
+      red: 'bg-red-500/10 text-red-400 border-red-500/20',
+      amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    };
+    return { label: status.label, color: colorMap[status.color] };
   };
 
   return (
@@ -184,7 +197,7 @@ const HomePage = () => {
                           <span className="font-medium text-zinc-200 truncate text-sm sm:text-base">{admin.name}</span>
                         </div>
                         <span className="text-[11px] sm:text-xs text-zinc-500 shrink-0 ml-2">
-                          {admin.licenseEndDate ? `${Math.ceil((new Date(admin.licenseEndDate) - today) / (1000 * 60 * 60 * 24))} días` : 'Sin licencia'}
+                          {admin.licenseEndDate ? `${Math.ceil((new Date(admin.licenseEndDate) - getToday()) / (1000 * 60 * 60 * 24))} días` : 'Sin licencia'}
                         </span>
                       </div>
                     ))}
@@ -387,7 +400,7 @@ const HomePage = () => {
                 color="violet"
               />
               <StatCard
-                label="Rutina dia"
+                label="Día de hoy"
                 value={new Date().toLocaleDateString('es-AR', { weekday: 'long' }).replace(/^\w/, c => c.toUpperCase())}
                 icon="📋"
                 color="emerald"
