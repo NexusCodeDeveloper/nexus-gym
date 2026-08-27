@@ -13,16 +13,13 @@
     "axios": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-hook-form": "^7.77.0",
-    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.17.0",
     "recharts": "^3.9.0",
-    "sweetalert2": "^11.26.25"
+    "sweetalert2": "^11.26.25",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "eslint": "^10.3.0",
