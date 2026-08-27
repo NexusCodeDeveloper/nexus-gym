@@ -6,8 +6,10 @@ export const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`>>> MongoDB Conectado: ${conn.connection.host} <<<`);
-    
-    await seedTestUser();
+
+    if (process.env.NODE_ENV !== 'production') {
+      await seedTestUser();
+    }
 
   } catch (error) {
     console.error(`⨷ Error al conectar a MongoDB: ${error.message}`);

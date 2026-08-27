@@ -3,12 +3,6 @@ import bcrypt from "bcryptjs";
 
 export const seedTestUser = async () => {
   try {
-    try {
-      await User.collection.dropIndexes();
-    } catch (e) {
-      console.log("[SEED] Colección limpia, sin índices viejos.");
-    }
-
     const salt = await bcrypt.genSalt(10);
     const defaultPassword = await bcrypt.hash("123456", salt);
 
@@ -55,23 +49,41 @@ export const seedTestUser = async () => {
       if (!userExists) {
         const newUser = new User(userData);
         await newUser.save();
-        console.log(`[SEED] ✅ Creado: ${userData.name} | Rol: ${userData.role} | DNI: ${userData.dni}`);
+        console.log(`[SEED] Creado: ${userData.name} | Rol: ${userData.role} | DNI: ${userData.dni}`);
       } else {
-        if (userExists.role !== userData.role || !userExists.password || !userExists.email) {
-          userExists.role = userData.role;
+        if (!userExists.password) {
           userExists.password = userData.password;
-          userExists.email = userData.email;
           await userExists.save();
-          console.log(`[SEED] 🔄 Actualizado: ${userData.name} (password/email/role)`);
+          console.log(`[SEED] Password asignado: ${userData.name}`);
         } else {
-          console.log(`[SEED] User hardcodeado OK: ${userData.name} (${userData.role})`);
+          console.log(`[SEED] User OK: ${userData.name} (${userData.role})`);
         }
       }
     }
     
     console.log("[SEED] Proceso finalizado.");
 
+    await linkSeedUsersToAdmin();
+
   } catch (error) {
     console.error("[SEED] ❌ Error al insertar usuarios de prueba:", error.message);
+  }
+};
+
+const linkSeedUsersToAdmin = async () => {
+  try {
+    const admin = await User.findOne({ dni: '00000000', role: 'admin' });
+    if (!admin) return;
+
+    const usersToLink = await User.find({ dni: { $in: ['11111111', '22222222'] }, createdBy: null });
+    if (usersToLink.length === 0) return;
+
+    await Promise.all(usersToLink.map(async (user) => {
+      user.createdBy = admin._id;
+      await user.save();
+      console.log(`[SEED] 🔗 Vinculado ${user.name} al gimnasio de prueba`);
+    }));
+  } catch (error) {
+    console.error("[SEED] ❌ Error al vincular usuarios al gimnasio:", error.message);
   }
 };
