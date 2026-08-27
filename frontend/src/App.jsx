@@ -12,9 +12,8 @@ import ExerciseLibrary from "./pages/admin/ExerciseLibrary/index.jsx";
 import RoutineRouter from "./pages/routineList/RoutineRouter.jsx";
 import RoutineView from "./pages/routineView/RoutineView.jsx";
 import ProfilePage from "./pages/profile/ProfilePage.jsx";
-import ChatPage from "./pages/chat/ChatPage.jsx";
 
-function App() {
+const App = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -32,11 +31,10 @@ function App() {
               <Route path="/adminDashboard" element={<ProtectedRoute allowedRoles={["admin"]}><LicenseGuard><UserManagement /></LicenseGuard></ProtectedRoute>} />
               <Route path="/exercise-library" element={<ProtectedRoute allowedRoles={["admin"]}><ExerciseLibrary /></ProtectedRoute>} />
             </Route>
-            <Route path="/chat" element={<ChatPage />} />
-          </Route>
-        </Routes>
+            </Route>
+          </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
-}
+};
 export default App;
