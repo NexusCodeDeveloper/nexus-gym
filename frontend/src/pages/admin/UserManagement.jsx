@@ -1,27 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { z } from "zod";
 import { useAuth } from "../../context/AuthContext";
 import { showSuccessToast, showErrorToast, showConfirmDialog, showDeleteConfirmDialog } from "../../utils/swal";
 import { toDateInputValue } from "../../utils/date";
 import AttendanceToday from "../../components/attendance/AttendanceToday.jsx";
+import SecurityLog from "../../components/security/SecurityLog.jsx";
 import api from "../../service/api.js";
-
-const userSchema = z.object({
-  name: z
-    .string()
-    .min(3, "El nombre debe tener al menos 3 letras")
-    .max(50, "El nombre es muy largo"),
-  dni: z.string().regex(/^\d{7,8}$/, "El DNI debe tener 7 u 8 números sin puntos"),
-  licenseStartDate: z.string().nonempty("La fecha de inicio es requerida"),
-  licenseEndDate: z.string().nonempty("La fecha de fin es requerida"),
-  role: z.string().nonempty("El rol es requerido"),
-});
-
-const licenseSchema = z.object({
-  licenseStartDate: z.string().nonempty("La fecha de inicio es requerida"),
-  licenseEndDate: z.string().nonempty("La fecha de fin es requerida"),
-});
+import { userSchema, licenseSchema } from "../../validators/userManagementValidators";
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -209,6 +194,12 @@ const UserManagement = () => {
           >
             Asistencia Profesores
           </button>
+          <button
+            onClick={() => setView('security')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${view === 'security' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+          >
+            Seguridad
+          </button>
         </div>
 
         {view === 'users' && (
@@ -285,7 +276,7 @@ const UserManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  users.filter(u => u.dni && u.dni.includes(searchDni)).map((user) => (
+                  users.filter(u => (u.dni || '').includes(searchDni)).map((user) => (
                     <tr
                       key={user._id}
                       className="hover:bg-zinc-800/50 transition-colors"
@@ -351,8 +342,10 @@ const UserManagement = () => {
 
         {view === 'attendance' && <AttendanceToday />}
 
+        {view === 'security' && <SecurityLog />}
+
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
             <div className="bg-zinc-900 rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-xl border border-zinc-800">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-zinc-100">
@@ -490,7 +483,7 @@ const UserManagement = () => {
         )}
 
         {isEditModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
             <div className="bg-zinc-900 rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-xl border border-zinc-800">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-zinc-100">
