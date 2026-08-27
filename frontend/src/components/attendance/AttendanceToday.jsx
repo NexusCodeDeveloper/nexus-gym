@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../service/api.js';
 import { showErrorToast } from '../../utils/swal.js';
 
@@ -22,7 +22,7 @@ const ProfessorDetail = ({ professor, onClose }) => {
         const res = await api.get('/api/attendance/gym/history', {
           params: { startDate, endDate },
         });
-        setHistory(res.data);
+        setHistory(res.data.data);
       } catch {
         showErrorToast('Error al cargar historial');
       } finally {
@@ -107,7 +107,7 @@ const AttendanceToday = () => {
     try {
       const params = date ? { date } : {};
       const res = await api.get('/api/attendance/gym', { params });
-      setData(res.data);
+      setData(res.data.data);
     } catch {
       showErrorToast('Error al cargar asistencia');
     } finally {
