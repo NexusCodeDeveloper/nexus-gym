@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { showSuccessToast, showErrorToast, showDeleteConfirmDialog } from '../../../utils/swal';
 import api from '../../../service/api.js';
+import { showSuccessToast, showErrorToast, showDeleteConfirmDialog } from '../../../utils/swal';
 
 const CATEGORIES = ['Pecho', 'Espalda', 'Piernas', 'Hombros', 'Brazos', 'Core', 'Cardio', 'Full Body', 'General'];
 
@@ -54,6 +54,7 @@ const ExerciseLibrary = () => {
       });
       showSuccessToast('Video subido correctamente');
       setUploadData({ name: '', description: '', category: 'General', file: null });
+      if (fileInputRef.current) fileInputRef.current.value = '';
       fetchVideos();
     } catch (err) {
       showErrorToast(err.response?.data?.message || 'Error al subir el video');
