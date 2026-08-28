@@ -18,6 +18,8 @@ import securityRoutes from "./routes/securityRoutes.js";
 
 dotenv.config();
 
+connectDB();
+
 const app = express();
 
 app.use(
