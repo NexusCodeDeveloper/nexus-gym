@@ -6,13 +6,11 @@ import ExerciseMedia from '../models/ExerciseMedia.js';
 import SecurityAlert from '../models/SecurityAlert.js';
 import RoutineProgress from '../models/RoutineProgress.js';
 import WorkoutSession from '../models/WorkoutSession.js';
-import bcrypt from 'bcryptjs';
 import { toArgDate, getArgToday, getArgStartOfDay } from '../utils/date.js';
 
 export const getAdmins = async (req, res) => {
   try {
     const admins = await User.find({ role: 'admin' })
-      .select('-password')
       .sort({ createdAt: -1 });
     res.json({ message: 'Administradores obtenidos correctamente', data: admins });
   } catch (error) {
@@ -50,21 +48,16 @@ export const createAdmin = async (req, res) => {
       return res.status(400).json({ message: 'El DNI ya se encuentra registrado' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(dni, salt);
-
     const newAdmin = await User.create({
       name,
       dni,
-      password: hashedPassword,
       role: 'admin',
       isActive: true,
       licenseStartDate: toArgDate(licenseStartDate),
       licenseEndDate: toArgDate(licenseEndDate),
     });
 
-    const { password, ...safeAdmin } = newAdmin.toObject();
-    res.status(201).json({ message: 'Cliente creado correctamente', data: safeAdmin });
+    res.status(201).json({ message: 'Cliente creado correctamente', data: newAdmin });
   } catch (error) {
     console.error('Error creating admin:', error);
     res.status(500).json({ message: 'Error al crear el cliente' });
@@ -95,8 +88,7 @@ export const renewAdmin = async (req, res) => {
     admin.isActive = true;
     await admin.save();
 
-    const { password, ...safeAdmin } = admin.toObject();
-    res.json({ message: 'Licencia renovada correctamente', data: safeAdmin });
+    res.json({ message: 'Licencia renovada correctamente', data: admin });
   } catch (error) {
     console.error('Error renewing:', error);
     res.status(500).json({ message: 'Error al renovar la licencia' });
@@ -148,7 +140,7 @@ export const updateAdmin = async (req, res) => {
       { _id: req.validatedParams.id, role: 'admin' },
       updateFields,
       { returnDocument: 'after' }
-    ).select('-password');
+    );
 
     if (!updatedAdmin) {
       return res.status(404).json({ message: 'Cliente no encontrado' });
