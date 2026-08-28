@@ -14,7 +14,7 @@ export const getUsers = async (req, res) => {
     if (req.validatedQuery?.role) {
       filter.role = req.validatedQuery.role;
     }
-    const users = await User.find(filter).select('-password');
+    const users = await User.find(filter);
     res.status(200).json({ message: "Usuarios obtenidos correctamente", data: users });
   } catch (error) {
     console.error("Error fetching users:", error);

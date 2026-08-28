@@ -1,5 +1,4 @@
 import User from "../models/User.js";
-import bcrypt from "bcryptjs";
 import { createAccessToken } from "../libs/jwt.js";
 import { toArgDate, isDateExpired } from "../utils/date.js";
 
@@ -15,7 +14,7 @@ const clearTokenCookie = (res) => {
 
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, dni, createdBy, licenseStartDate, licenseEndDate } = req.validatedBody;
+    const { name, email, role, dni, createdBy, licenseStartDate, licenseEndDate } = req.validatedBody;
 
     const finalCreatedBy = req.user.role === 'admin' ? req.user.id : (createdBy || null);
 
@@ -36,13 +35,9 @@ export const registerUser = async (req, res) => {
       }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     const newUser = new User({
       name,
       email,
-      password: hashedPassword,
       role: role || "alumno",
       dni,
       createdBy: finalCreatedBy,

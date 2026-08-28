@@ -7,7 +7,6 @@ const dniRegex = /^\d{7,8}$/;
 export const registerSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(50),
   email: z.string().email('Email inválido').optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').max(100),
   dni: z.string().regex(dniRegex, 'El DNI debe tener 7 u 8 dígitos'),
   role: z.enum(['profesor', 'alumno']).optional(),
   createdBy: z.string().regex(objectIdRegex, 'ID inválido').optional(),

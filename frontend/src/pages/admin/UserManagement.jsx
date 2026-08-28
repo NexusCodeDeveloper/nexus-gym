@@ -71,7 +71,6 @@ const UserManagement = () => {
     const newUserPayload = {
       name: formData.name,
       dni: formData.dni,
-      password: formData.dni,
       email: `${formData.dni}@nexusgym.com`,
       role: formData.role,
       createdBy: user?.id,
