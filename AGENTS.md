@@ -1,4 +1,4 @@
-# NexusSaas - SaaS de gestión gimnasios
+# NexusSaas - SaaS de gestión gimnasios.
 
 ## Stack
 - **Backend:** Node.js, Express 5, Mongoose, MongoDB Atlas
